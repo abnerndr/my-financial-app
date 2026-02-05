@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/data";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { NotificationToggle } from "./notification-toggle";
 import { WarningForm } from "./warning-form";
 
 export default async function ConfiguracoesPage() {
@@ -13,9 +14,10 @@ export default async function ConfiguracoesPage() {
 
 	const settings = await getSettings();
 	const defaultPercent = settings?.warningLimitPercent ?? 90;
+	const emailNotificationsEnabled = settings?.emailNotificationsEnabled ?? true;
 
 	return (
-		<div className="container max-w-2xl space-y-8 py-8">
+		<div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8 py-8">
 			<div className="flex items-center gap-4">
 				<Button variant="ghost" size="icon" asChild>
 					<Link href="/dashboard">
@@ -27,6 +29,18 @@ export default async function ConfiguracoesPage() {
 					<p className="text-muted-foreground">Percentual de aviso de limite</p>
 				</div>
 			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>Notificações por email</CardTitle>
+					<CardDescription>
+						Escolha se deseja receber alertas e notificações por email (limite de orçamento, situação crítica, etc.).
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<NotificationToggle defaultEnabled={emailNotificationsEnabled} />
+				</CardContent>
+			</Card>
 
 			<Card>
 				<CardHeader>

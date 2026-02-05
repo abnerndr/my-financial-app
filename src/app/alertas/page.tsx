@@ -14,7 +14,7 @@ export default async function AlertasPage() {
 	const alerts = await getAlerts();
 
 	return (
-		<div className="container max-w-2xl space-y-8 py-8">
+		<div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8 py-8">
 			<div className="flex items-center gap-4">
 				<Button variant="ghost" size="icon" asChild>
 					<Link href="/dashboard">

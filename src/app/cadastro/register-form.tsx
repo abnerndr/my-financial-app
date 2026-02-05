@@ -56,7 +56,7 @@ export function RegisterForm() {
 					<AlertDescription>
 						{mutation.data.message}
 						<br />
-						<strong>Nota:</strong> Em desenvolvimento, o link de verificação aparece no console do servidor.
+						Verifique sua caixa de entrada (e a pasta de spam) para ativar sua conta.
 					</AlertDescription>
 				</Alert>
 			)}

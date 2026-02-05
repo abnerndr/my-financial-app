@@ -28,7 +28,7 @@ export default async function DashboardPage() {
 	const data = await getDashboardData();
 	if (!data) {
 		return (
-			<div className="container max-w-4xl py-8">
+			<div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
 				<p className="text-muted-foreground">Carregando...</p>
 			</div>
 		);
@@ -46,11 +46,11 @@ export default async function DashboardPage() {
 	} = data;
 
 	return (
-		<div className="container max-w-4xl space-y-8 py-8">
+		<div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8 py-8">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-2xl font-bold">Dashboard</h1>
-					<p className="text-muted-foreground">Visão geral da sua situação financeira</p>
+					<h1 className="text-3xl font-bold">Dashboard</h1>
+					<p className="text-muted-foreground mt-1">Visão geral da sua situação financeira</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
 					<Button asChild size="sm" variant="outline">

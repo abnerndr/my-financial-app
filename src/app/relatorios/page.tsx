@@ -16,7 +16,7 @@ export default async function RelatoriosPage() {
 
 	if (!dashboard) {
 		return (
-			<div className="container max-w-4xl py-8">
+			<div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
 				<p className="text-muted-foreground">Carregando...</p>
 			</div>
 		);
@@ -25,7 +25,7 @@ export default async function RelatoriosPage() {
 	const { monthlyIncome, saved, monthlyExpenses, balance, usedPercent } = dashboard;
 
 	return (
-		<div className="container max-w-4xl space-y-8 py-8">
+		<div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8 py-8">
 			<div className="flex items-center gap-4">
 				<Button variant="ghost" size="icon" asChild>
 					<Link href="/dashboard">

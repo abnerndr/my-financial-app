@@ -64,14 +64,16 @@ export async function register(formData: FormData) {
 			},
 		});
 
-		// Envia email de verificação (mock - substitua por serviço real)
+		// Envia email de verificação via SendGrid
 		const verificationUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${token}&email=${encodeURIComponent(
 			email
 		)}`;
 
-		console.log("🔗 Link de verificação:", verificationUrl);
-		// TODO: Integrar com serviço de email (Resend, SendGrid, etc.)
-		// await sendVerificationEmail(email, verificationUrl);
+		const { sendVerificationEmail } = await import("@/lib/email");
+		const sent = await sendVerificationEmail(email, verificationUrl, name);
+		if (!sent) {
+			console.log("🔗 Link de verificação (fallback):", verificationUrl);
+		}
 
 		return { success: true, message: "Cadastro realizado! Verifique seu email para ativar a conta." };
 	} catch (error: any) {

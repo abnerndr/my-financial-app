@@ -33,3 +33,22 @@ export async function updateWarningLimit(formData: FormData) {
 	revalidatePath("/configuracoes");
 	return { success: true };
 }
+
+export async function updateEmailNotifications(enabled: boolean) {
+	const session = await getSession();
+	if (!session?.user?.id) return { error: "Não autorizado" };
+
+	await prisma.userSettings.upsert({
+		where: { userId: session.user.id },
+		create: {
+			userId: session.user.id,
+			emailNotificationsEnabled: enabled,
+		},
+		update: { emailNotificationsEnabled: enabled },
+	});
+
+	revalidatePath("/");
+	revalidatePath("/dashboard");
+	revalidatePath("/configuracoes");
+	return { success: true };
+}
