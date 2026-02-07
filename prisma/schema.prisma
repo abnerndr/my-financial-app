@@ -62,12 +62,18 @@ model VerificationToken {
 }
 
 model UserSettings {
-  id                        String   @id @default(cuid())
-  userId                    String   @unique
-  warningLimitPercent       Float    @default(90)
-  emailNotificationsEnabled Boolean  @default(true)
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id                           String    @id @default(cuid())
+  userId                       String    @unique
+  warningLimitPercent          Float     @default(90)
+  emailNotificationsEnabled    Boolean   @default(true)
+  phone                        String? // E.164 para WhatsApp
+  phoneVerified                Boolean   @default(false)
+  whatsappNotificationsEnabled Boolean   @default(false)
+  verificationCode             String? // Código 6 dígitos para verificação via WhatsApp
+  verificationCodeExpiresAt    DateTime?
+  integrationApiKey            String?   @unique // Chave para APIs públicas (n8n)
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

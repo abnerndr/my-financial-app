@@ -7,6 +7,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NotificationToggle } from "./notification-toggle";
 import { WarningForm } from "./warning-form";
+import { WhatsappIntegrationForm } from "./whatsapp-integration-form";
 
 export default async function ConfiguracoesPage() {
 	const session = await getSession();
@@ -52,6 +53,22 @@ export default async function ConfiguracoesPage() {
 				</CardHeader>
 				<CardContent>
 					<WarningForm defaultPercent={defaultPercent} />
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle>WhatsApp</CardTitle>
+					<CardDescription>
+						Cadastre e verifique seu número para receber notificações e enviar gastos via WhatsApp.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<WhatsappIntegrationForm
+						defaultPhone={settings?.phone ?? null}
+						defaultPhoneVerified={settings?.phoneVerified ?? false}
+						defaultWhatsappEnabled={settings?.whatsappNotificationsEnabled ?? false}
+					/>
 				</CardContent>
 			</Card>
 		</div>
