@@ -9,7 +9,7 @@ import { AlertList } from "./alert-list";
 
 export default async function AlertasPage() {
 	const session = await getSession();
-	if (!session) redirect("/login");
+	if (!session) redirect("/");
 
 	const alerts = await getAlerts();
 

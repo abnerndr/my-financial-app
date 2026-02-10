@@ -19,7 +19,15 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export function LoginForm({ error, verified }: { error?: string; verified?: string }) {
+export function LoginForm({
+	callbackUrl,
+	error,
+	verified,
+}: {
+	callbackUrl?: string;
+	error?: string;
+	verified?: string;
+}) {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
 	const form = useForm<FormData>({
@@ -42,11 +50,15 @@ export function LoginForm({ error, verified }: { error?: string; verified?: stri
 			if (result?.error) {
 				form.setError("root", { message: result.error });
 			} else if (result?.ok) {
-				router.push("/dashboard");
+				router.push(callbackUrl && callbackUrl.startsWith("/") ? callbackUrl : "/dashboard");
 				router.refresh();
 			}
-		} catch (error: any) {
-			form.setError("root", { message: error.message || "Erro ao fazer login" });
+		} catch (error) {
+			if (error instanceof Error) {
+				form.setError("root", { message: error.message || "Erro ao fazer login" });
+			} else {
+				form.setError("root", { message: "Erro ao fazer login" });
+			}
 		} finally {
 			setIsLoading(false);
 		}
@@ -70,8 +82,8 @@ export function LoginForm({ error, verified }: { error?: string; verified?: stri
 						{error === "CredentialsSignin"
 							? "Email ou senha incorretos"
 							: error === "EmailNotVerified"
-							? "Email não verificado. Verifique sua caixa de entrada."
-							: form.formState.errors.root?.message || "Erro ao fazer login. Tente novamente."}
+								? "Email não verificado. Verifique sua caixa de entrada."
+								: form.formState.errors.root?.message || "Erro ao fazer login. Tente novamente."}
 					</AlertDescription>
 				</Alert>
 			)}

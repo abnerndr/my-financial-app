@@ -15,9 +15,9 @@ export async function middleware(request: NextRequest) {
 	});
 
 	if (isProtected(request.nextUrl.pathname) && !token) {
-		const login = new URL("/login", request.url);
-		login.searchParams.set("callbackUrl", request.nextUrl.pathname);
-		return NextResponse.redirect(login);
+		const home = new URL("/", request.url);
+		home.searchParams.set("callbackUrl", request.nextUrl.pathname);
+		return NextResponse.redirect(home);
 	}
 
 	return NextResponse.next();

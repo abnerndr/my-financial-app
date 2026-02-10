@@ -10,7 +10,7 @@ import { IncomeTable } from "./income-table";
 
 export default async function RendaPage() {
 	const session = await getSession();
-	if (!session) redirect("/login");
+	if (!session) redirect("/");
 
 	const incomes = await getIncomes();
 

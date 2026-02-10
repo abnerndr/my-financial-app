@@ -22,7 +22,7 @@ export default async function LoginPage({
 					<CardDescription>Entre com sua conta para acessar a plataforma</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<LoginForm error={params.error} verified={params.verified} />
+					<LoginForm callbackUrl={params.callbackUrl} error={params.error} verified={params.verified} />
 					<div className="mt-4 text-center text-sm text-muted-foreground">
 						Não tem uma conta?{" "}
 						<Link href="/cadastro" className="text-primary hover:underline">

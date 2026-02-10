@@ -10,7 +10,7 @@ import { ExpenseTable } from "./expense-table";
 
 export default async function GastosPage() {
 	const session = await getSession();
-	if (!session) redirect("/login");
+	if (!session) redirect("/");
 
 	const expenses = await getExpenses();
 

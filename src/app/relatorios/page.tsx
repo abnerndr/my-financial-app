@@ -10,7 +10,7 @@ import { ReportsCharts } from "./reports-charts";
 
 export default async function RelatoriosPage() {
 	const session = await getSession();
-	if (!session) redirect("/login");
+	if (!session) redirect("/");
 
 	const [dashboard, expenses, incomes] = await Promise.all([getDashboardData(), getExpenses(), getIncomes()]);
 

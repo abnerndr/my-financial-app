@@ -23,7 +23,7 @@ import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
 	const session = await getSession();
-	if (!session) redirect("/login");
+	if (!session) redirect("/");
 
 	const data = await getDashboardData();
 	if (!data) {

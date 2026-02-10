@@ -11,7 +11,7 @@ import { WhatsappIntegrationForm } from "./whatsapp-integration-form";
 
 export default async function ConfiguracoesPage() {
 	const session = await getSession();
-	if (!session) redirect("/login");
+	if (!session) redirect("/");
 
 	const settings = await getSettings();
 	const defaultPercent = settings?.warningLimitPercent ?? 90;
