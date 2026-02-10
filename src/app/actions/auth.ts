@@ -20,8 +20,9 @@ export async function register(formData: FormData) {
 	});
 
 	if (!parsed.success) {
+		const { fieldErrors } = z.flattenError(parsed.error);
 		return {
-			error: parsed.error.flatten().fieldErrors as Record<string, string[] | undefined>,
+			error: fieldErrors as Record<string, string[] | undefined>,
 		};
 	}
 
@@ -66,7 +67,7 @@ export async function register(formData: FormData) {
 
 		// Envia email de verificação via SendGrid
 		const verificationUrl = `${process.env.NEXTAUTH_URL}/verify-email?token=${token}&email=${encodeURIComponent(
-			email
+			email,
 		)}`;
 
 		const { sendVerificationEmail } = await import("@/lib/email");
@@ -84,39 +85,51 @@ export async function register(formData: FormData) {
 
 export async function verifyEmail(token: string | undefined, email: string | undefined) {
 	if (!token || !email) {
-		return { error: "Token e email são obrigatórios" };
+		return { success: false as const, error: "Token e email são obrigatórios" };
 	}
-	const verificationToken = await prisma.verificationToken.findUnique({
-		where: {
-			identifier_token: {
-				identifier: email,
-				token,
+
+	try {
+		// Busca pelo token (único); o email na URL pode vir em outro case (ex.: Gmail)
+		const verificationToken = await prisma.verificationToken.findUnique({
+			where: { token },
+		});
+
+		if (!verificationToken) {
+			return { success: false as const, error: "Token inválido" };
+		}
+
+		const identifierLower = verificationToken.identifier.toLowerCase();
+		const emailLower = email.toLowerCase();
+		if (identifierLower !== emailLower) {
+			return { success: false as const, error: "O link não corresponde ao email informado." };
+		}
+
+		if (verificationToken.expires < new Date()) {
+			return { success: false as const, error: "Token expirado. Solicite um novo link de verificação." };
+		}
+
+		// Usa o identifier do registro para evitar diferença de case
+		await prisma.user.update({
+			where: { email: verificationToken.identifier },
+			data: { emailVerified: new Date() },
+		});
+
+		await prisma.verificationToken.delete({
+			where: {
+				identifier_token: {
+					identifier: verificationToken.identifier,
+					token,
+				},
 			},
-		},
-	});
+		});
 
-	if (!verificationToken) {
-		return { error: "Token inválido" };
+		revalidatePath("/login");
+		return { success: true as const };
+	} catch (err) {
+		console.error("[verifyEmail]", err);
+		return {
+			success: false as const,
+			error: "Não foi possível verificar seu email. Tente novamente ou solicite um novo link.",
+		};
 	}
-
-	if (verificationToken.expires < new Date()) {
-		return { error: "Token expirado. Solicite um novo link de verificação." };
-	}
-
-	await prisma.user.update({
-		where: { email },
-		data: { emailVerified: new Date() },
-	});
-
-	await prisma.verificationToken.delete({
-		where: {
-			identifier_token: {
-				identifier: email,
-				token,
-			},
-		},
-	});
-
-	revalidatePath("/login");
-	return { success: true };
 }

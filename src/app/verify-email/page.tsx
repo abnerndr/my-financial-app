@@ -36,7 +36,13 @@ export default async function VerifyEmailPage({
 		);
 	}
 
-	const result = await verifyEmail(token, email);
+	let result: { success: boolean; error?: string };
+	try {
+		result = await verifyEmail(token, email);
+	} catch (err) {
+		console.error("[verify-email page]", err);
+		result = { success: false, error: "Ocorreu um erro ao verificar seu email. Tente novamente mais tarde." };
+	}
 
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
