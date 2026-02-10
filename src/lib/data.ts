@@ -21,7 +21,7 @@ export async function getDashboardData() {
 		}),
 	]);
 
-	const warningPercent = settings?.warningLimitPercent ?? 90;
+	const warningPercent = settings?.warningLimitPercent ?? 0;
 	const monthlyIncome = totalMonthlyIncome(incomes);
 	const saved = totalSaved(incomes);
 	const monthlyExpenses = totalMonthlyExpenses(expenses);
@@ -41,7 +41,7 @@ export async function getDashboardData() {
 			await createAlert(
 				"LIMIT_WARNING",
 				`Atenção: você atingiu ${warningPercent}% do limite. Restam ${remainingPercent.toFixed(0)}% do orçamento.`,
-				{ usedPercent, remainingPercent, warningPercent }
+				{ usedPercent, remainingPercent, warningPercent },
 			);
 		}
 	}

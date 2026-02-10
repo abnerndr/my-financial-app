@@ -64,7 +64,7 @@ model VerificationToken {
 model UserSettings {
   id                           String    @id @default(cuid())
   userId                       String    @unique
-  warningLimitPercent          Float     @default(90)
+  warningLimitPercent          Float     @default(0)
   emailNotificationsEnabled    Boolean   @default(true)
   phone                        String? // E.164 para WhatsApp
   phoneVerified                Boolean   @default(false)

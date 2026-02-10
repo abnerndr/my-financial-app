@@ -14,7 +14,7 @@ export default async function ConfiguracoesPage() {
 	if (!session) redirect("/");
 
 	const settings = await getSettings();
-	const defaultPercent = settings?.warningLimitPercent ?? 90;
+	const defaultPercent = settings?.warningLimitPercent ?? 0;
 	const emailNotificationsEnabled = settings?.emailNotificationsEnabled ?? true;
 
 	return (
