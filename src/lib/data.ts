@@ -7,6 +7,8 @@ import {
 	totalSaved,
 	usagePercent,
 } from "@/lib/calculations";
+import { sendWhatsAppText } from "@/lib/evolution-api";
+import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
 export async function getDashboardData() {
@@ -22,7 +24,7 @@ export async function getDashboardData() {
 		prisma.userSettings.findUnique({
 			where: { userId: session.user.id },
 		}),
-		prisma.expensePayment.findMany({
+		(prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ expense: { value: unknown } }>> } }).expensePayment.findMany({
 			where: {
 				expense: { userId: session.user.id },
 				referenceMonth: firstOfMonth,
@@ -35,7 +37,10 @@ export async function getDashboardData() {
 	const monthlyIncome = totalMonthlyIncome(incomes);
 	const saved = totalSaved(incomes);
 	const monthlyExpenses = totalMonthlyExpenses(expenses);
-	const totalPaidThisMonth = paymentsThisMonth.reduce((acc, p) => acc + Number(p.expense.value), 0);
+	const totalPaidThisMonth = paymentsThisMonth.reduce(
+		(acc: number, p: (typeof paymentsThisMonth)[number]) => acc + Number(p.expense.value),
+		0
+	);
 	const balance = remainingBalance(incomes, expenses);
 	const { usedPercent, remainingPercent, isCritical } = usagePercent(incomes, expenses, warningPercent);
 
@@ -54,6 +59,26 @@ export async function getDashboardData() {
 				`Atenção: você atingiu ${warningPercent}% do limite. Restam ${remainingPercent.toFixed(0)}% do orçamento.`,
 				{ usedPercent, remainingPercent, warningPercent },
 			);
+
+			// Envia também uma notificação via WhatsApp, se o usuário tiver habilitado
+			if (settings?.phone && settings.phoneVerified && settings.whatsappNotificationsEnabled) {
+				const remainingMoney = Math.max(0, balance);
+				const message = [
+					"*Alerta de limite de gastos*",
+					"",
+					`Você atingiu o limite de *${warningPercent.toFixed(0)}%* do seu orçamento.`,
+					`Valor ainda disponível para gastar: *${formatCurrency(remainingMoney)}*.`,
+					"",
+					"Reveja seus gastos para não ultrapassar o limite configurado.",
+				].join("\n");
+
+				// Não deixa falha de envio quebrar o dashboard
+				try {
+					await sendWhatsAppText(settings.phone, message);
+				} catch (e) {
+					console.error("[dashboard] erro ao enviar alerta de limite via WhatsApp", e);
+				}
+			}
 		}
 	}
 
@@ -79,7 +104,6 @@ export async function getExpenses() {
 	return prisma.expense.findMany({
 		where: { userId: session.user.id },
 		orderBy: { createdAt: "desc" },
-		include: { payments: true },
 	});
 }
 
@@ -92,18 +116,20 @@ export async function getExpensesWithPaymentStatus(year?: number, month?: number
 	const m = month ?? now.getMonth();
 	const firstOfMonth = new Date(y, m, 1);
 
-	const expenses = await prisma.expense.findMany({
-		where: { userId: session.user.id },
-		orderBy: { createdAt: "desc" },
-		include: {
-			payments: {
-				where: { referenceMonth: firstOfMonth },
-				take: 1,
-			},
-		},
-	});
+	const [expenses, paidIds] = await Promise.all([
+		prisma.expense.findMany({
+			where: { userId: session.user.id },
+			orderBy: { createdAt: "desc" },
+		}),
+		(prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ expenseId: string }>> } }).expensePayment
+			.findMany({
+				where: { referenceMonth: firstOfMonth, expense: { userId: session.user.id } },
+				select: { expenseId: true },
+			})
+			.then((list: Array<{ expenseId: string }>) => new Set(list.map((p) => p.expenseId))),
+	]);
 
-	return expenses.map((e) => ({
+	return expenses.map((e: (typeof expenses)[number]) => ({
 		id: e.id,
 		userId: e.userId,
 		title: e.title,
@@ -111,10 +137,10 @@ export async function getExpensesWithPaymentStatus(year?: number, month?: number
 		logoUrl: e.logoUrl,
 		value: Number(e.value),
 		frequency: e.frequency,
-		dueDate: e.dueDate?.toISOString() ?? null,
+		dueDate: (e as { dueDate?: Date | null }).dueDate?.toISOString() ?? null,
 		createdAt: e.createdAt.toISOString(),
 		updatedAt: e.updatedAt.toISOString(),
-		paidThisMonth: e.payments.length > 0,
+		paidThisMonth: paidIds.has(e.id),
 	}));
 }
 
@@ -126,9 +152,8 @@ export async function getPaymentsHistory(year?: number, month?: number) {
 	const y = year ?? now.getFullYear();
 	const m = month ?? now.getMonth();
 	const start = new Date(y, m, 1);
-	const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
 
-	const payments = await prisma.expensePayment.findMany({
+	const payments = await (prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ id: string; expenseId: string; referenceMonth: Date; paidAt: Date; expense: { title: string; value: unknown } }>> } }).expensePayment.findMany({
 		where: {
 			expense: { userId: session.user.id },
 			referenceMonth: start,

@@ -99,6 +99,8 @@ export function ExpenseEditModal({
 
 	const onSubmit = (data: FormData) => mutation.mutate(data);
 
+	const logoUrl = form.watch("logoUrl") ?? "";
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-[500px]">
@@ -108,15 +110,15 @@ export function ExpenseEditModal({
 				<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
 					<div className="grid grid-cols-[auto_1fr] gap-4">
 						<div className="flex flex-col items-center gap-2">
-							{form.watch("logoUrl") ? (
-								<Image
-									src={form.watch("logoUrl")}
-									alt=""
-									width={64}
-									height={64}
-									className="rounded-lg object-cover"
-								/>
-							) : (
+							{logoUrl ? (
+									<Image
+										src={logoUrl}
+										alt=""
+										width={64}
+										height={64}
+										className="rounded-lg object-cover"
+									/>
+								)  : (
 								<div className="flex size-16 items-center justify-center rounded-lg bg-muted text-muted-foreground">
 									Sem foto
 								</div>
