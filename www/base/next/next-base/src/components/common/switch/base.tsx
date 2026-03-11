@@ -17,7 +17,7 @@ const switchVariants = tv({
 		},
 		variant: {
 			primary:
-				'[--primary:var(--color-primary/50)] [--ring:var(--color-primary/30)] in-[.dark]:[--primary:var(--color-primary/50)] in-[.dark]:[--ring:var(--color-primary/90)]',
+				'[--primary:color-mix(in_oklch,var(--color-primary)_50%,transparent)] [--ring:color-mix(in_oklch,var(--color-primary)_30%,transparent)] in-[.dark]:[--primary:color-mix(in_oklch,var(--color-primary)_50%,transparent)] in-[.dark]:[--ring:color-mix(in_oklch,var(--color-primary)_90%,transparent)]',
 			indigo:
 				'[--primary:var(--color-indigo-500)] [--ring:var(--color-indigo-300)] in-[.dark]:[--primary:var(--color-indigo-500)] in-[.dark]:[--ring:var(--color-indigo-900)]',
 			red: '[--primary:var(--color-red-500)] [--ring:var(--color-red-300)] in-[.dark]:[--primary:var(--color-red-500)] in-[.dark]:[--ring:var(--color-red-900)]',

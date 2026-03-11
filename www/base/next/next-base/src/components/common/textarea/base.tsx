@@ -14,7 +14,7 @@ const textareaVariants = tv({
 		variant: {
 			default: '',
 			primary:
-				'[--ring:var(--color-primary/30)]  in-[.dark]:[--ring:var(--color-primary/90)]',
+				'[--ring:color-mix(in_oklch,var(--color-primary)_30%,transparent)] in-[.dark]:[--ring:color-mix(in_oklch,var(--color-primary)_90%,transparent)]',
 			indigo:
 				'[--ring:var(--color-indigo-300)]  in-[.dark]:[--ring:var(--color-indigo-900)]',
 			destructive:

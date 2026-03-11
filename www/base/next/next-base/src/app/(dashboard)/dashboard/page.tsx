@@ -2,11 +2,11 @@
 
 import type React from 'react';
 import Link from 'next/link';
-import { ProtectedRoute } from '@/components/auth/protected-route';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { usePermissions } from '@/lib/permissions';
-import { useAuthStore } from '@/lib/stores/auth';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { ProtectedRoute } from '../../../components/auth/protected-route';
+import { usePermissions } from '../../../lib/permissions';
+import { useAuthStore } from '../../../lib/stores/auth';
 
 const DashboardPage: React.FC = () => {
 	const { user } = useAuthStore();
@@ -29,7 +29,7 @@ const DashboardPage: React.FC = () => {
 						<Card className="p-6">
 							<h2 className="text-lg font-semibold mb-2">Your Roles</h2>
 							<div className="space-y-1">
-								{user?.roles?.map((role) => (
+								{user?.roles?.map((role: { id: React.Key | null | undefined; name: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; }) => (
 									<span
 										key={role.id}
 										className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1"
