@@ -1,3 +1,4 @@
+import { sendWhatsAppText } from "@/lib/evolution-api";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
@@ -8,44 +9,6 @@ const bodySchema = z.object({
 });
 
 const CODE_EXPIRY_MINUTES = 10;
-
-/** Número no formato aceito pela Evolution API (sem +): 5511999999999 */
-function toEvolutionNumber(phone: string): string {
-	return phone.replace(/\D/g, "");
-}
-
-async function sendWhatsAppViaEvolution(phone: string, text: string): Promise<boolean> {
-	const baseUrl = process.env.EVOLUTION_API_URL?.trim();
-	const apiKey = process.env.EVOLUTION_API_KEY?.trim();
-	const instance = process.env.EVOLUTION_INSTANCE?.trim();
-
-	if (!baseUrl || !apiKey || !instance) {
-		return false;
-	}
-
-	const url = `${baseUrl.replace(/\/$/, "")}/message/sendText/${instance}`;
-	const number = toEvolutionNumber(phone);
-
-	try {
-		const res = await fetch(url, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				apikey: apiKey,
-			},
-			body: JSON.stringify({ number, text }),
-		});
-
-		if (!res.ok) {
-			console.error("[evolution]", res.status, await res.text());
-			return false;
-		}
-		return true;
-	} catch (e) {
-		console.error("[evolution]", e);
-		return false;
-	}
-}
 
 /**
  * API pública: solicitar código de verificação e enviar via WhatsApp (Evolution API).
@@ -95,7 +58,7 @@ export async function POST(request: Request) {
 
 		// Envia via Evolution API se configurada (https://doc.evolution-api.com)
 		const message = `Seu código de verificação é: *${code}*\n\nVálido por ${CODE_EXPIRY_MINUTES} minutos.`;
-		const sent = await sendWhatsAppViaEvolution(phone, message);
+		const sent = await sendWhatsAppText(phone, message);
 
 		return NextResponse.json({
 			code,
