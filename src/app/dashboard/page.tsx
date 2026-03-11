@@ -38,6 +38,7 @@ export default async function DashboardPage() {
 		monthlyIncome,
 		saved,
 		monthlyExpenses,
+		totalPaidThisMonth,
 		balance,
 		usedPercent,
 		remainingPercent,
@@ -156,6 +157,41 @@ export default async function DashboardPage() {
 					</CardContent>
 				</Card>
 			</div>
+
+			{/* Comparativo: pago no mês x total gastos */}
+			<Card>
+				<CardHeader className="pb-2">
+					<CardTitle className="text-base">Contas pagas este mês</CardTitle>
+					<CardDescription>
+						Valor já pago em relação ao total previsto de gastos do mês
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<div>
+							<p className="text-2xl font-bold">{formatCurrency(totalPaidThisMonth)}</p>
+							<p className="text-sm text-muted-foreground">
+								de {formatCurrency(monthlyExpenses)} total de gastos
+							</p>
+						</div>
+						<div className="flex items-center gap-2">
+							{monthlyExpenses > 0 ? (
+								<>
+									<span className="text-sm font-medium">
+										{Math.round((totalPaidThisMonth / monthlyExpenses) * 100)}%
+									</span>
+									<Progress
+										value={Math.min(100, (totalPaidThisMonth / monthlyExpenses) * 100)}
+										className="h-2 w-24 sm:w-32"
+									/>
+								</>
+							) : (
+								<span className="text-sm text-muted-foreground">Sem gastos no mês</span>
+							)}
+						</div>
+					</div>
+				</CardContent>
+			</Card>
 
 			<div className="grid gap-4 sm:grid-cols-2">
 				<Link href="/gastos">

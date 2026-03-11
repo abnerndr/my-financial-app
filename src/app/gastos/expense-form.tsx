@@ -18,6 +18,7 @@ const schema = z.object({
 	logoUrl: z.string().url("URL inválida").optional().or(z.literal("")),
 	value: z.number().positive("Valor deve ser positivo"),
 	frequency: z.enum(["ONE_TIME", "MONTHLY", "ANNUAL"]),
+	dueDate: z.string().min(1, "Data de vencimento é obrigatória"),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -32,6 +33,7 @@ export function ExpenseForm() {
 			logoUrl: "",
 			value: 0,
 			frequency: "MONTHLY",
+			dueDate: new Date().toISOString().slice(0, 10),
 		},
 	});
 
@@ -43,6 +45,7 @@ export function ExpenseForm() {
 			fd.set("logoUrl", data.logoUrl ?? "");
 			fd.set("value", String(data.value));
 			fd.set("frequency", data.frequency);
+			fd.set("dueDate", data.dueDate);
 			return createExpense(fd);
 		},
 		onSuccess: (result) => {
@@ -101,6 +104,20 @@ export function ExpenseForm() {
 						<SelectItem value="ANNUAL">Anual</SelectItem>
 					</SelectContent>
 				</Select>
+			</div>
+			<div className="space-y-2">
+				<Label htmlFor="dueDate">Data de vencimento</Label>
+				<Input
+					id="dueDate"
+					type="date"
+					{...form.register("dueDate")}
+				/>
+				{form.formState.errors.dueDate && (
+					<p className="text-sm text-destructive">{form.formState.errors.dueDate.message}</p>
+				)}
+				<p className="text-xs text-muted-foreground">
+					Mensal: use o dia do vencimento (ex.: dia 10). Única vez: data exata.
+				</p>
 			</div>
 			<div className="sm:col-span-2">
 				<Button type="submit" disabled={mutation.isPending}>

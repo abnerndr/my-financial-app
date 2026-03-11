@@ -9,6 +9,7 @@ const expenseBodySchema = z.object({
 	logoUrl: z.url({ message: "URL do logo deve ser uma URL válida" }).optional().or(z.literal("")),
 	value: z.number().positive({ message: "Valor deve ser positivo" }),
 	frequency: z.enum(["ONE_TIME", "MONTHLY", "ANNUAL"], { message: "Periodicidade inválida" }),
+	dueDate: z.string().optional(),
 });
 
 const FREQUENCIES: ExpenseFrequency[] = ["ONE_TIME", "MONTHLY", "ANNUAL"];
@@ -81,8 +82,9 @@ export async function POST(request: Request) {
 			);
 		}
 
-		const { title, description, logoUrl, value, frequency } = parsed.data;
+		const { title, description, logoUrl, value, frequency, dueDate } = parsed.data;
 		const frequencyValid = FREQUENCIES.includes(frequency as ExpenseFrequency);
+		const dueDateValue = dueDate ? new Date(dueDate) : null;
 
 		const expense = await prisma.expense.create({
 			data: {
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
 				logoUrl: logoUrl || null,
 				value,
 				frequency: frequencyValid ? (frequency as ExpenseFrequency) : "ONE_TIME",
+				dueDate: dueDateValue,
 			},
 		});
 
