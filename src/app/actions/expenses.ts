@@ -1,6 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/auth";
+import { getMonthRangeInTimeZone } from "@/lib/month";
 import { prisma } from "@/lib/prisma";
 import type { ExpenseFrequency } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -105,18 +106,37 @@ export async function markExpenseAsPaid(
 	if (!expense) return { error: "Gasto não encontrado" };
 
 	const ref = referenceMonth ? new Date(referenceMonth) : new Date();
-	const firstOfMonth = new Date(ref.getFullYear(), ref.getMonth(), 1);
+	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone(ref);
 
-	await prisma.expensePayment.upsert({
+	// Evita divergência de fuso em produção: encontra o registro do mês por intervalo.
+	const existing = await (prisma as unknown as {
+		expensePayment: {
+			findFirst: (args: object) => Promise<{ id: string } | null>;
+			create: (args: object) => Promise<unknown>;
+			update: (args: object) => Promise<unknown>;
+		};
+	}).expensePayment.findFirst({
 		where: {
-			expenseId_referenceMonth: { expenseId, referenceMonth: firstOfMonth },
-		},
-		create: {
 			expenseId,
-			referenceMonth: firstOfMonth,
+			referenceMonth: { gte: startOfMonth, lt: endOfMonth },
 		},
-		update: { paidAt: new Date() },
+		select: { id: true },
 	});
+
+	if (existing) {
+		await prisma.expensePayment.update({
+			where: { id: existing.id },
+			data: { paidAt: new Date() },
+		});
+	} else {
+		await prisma.expensePayment.create({
+			data: {
+				expenseId,
+				referenceMonth: startOfMonth,
+				paidAt: new Date(),
+			},
+		});
+	}
 
 	revalidatePath("/");
 	revalidatePath("/dashboard");
@@ -139,12 +159,12 @@ export async function unmarkExpenseAsPaid(
 	if (!expense) return { error: "Gasto não encontrado" };
 
 	const ref = referenceMonth ? new Date(referenceMonth) : new Date();
-	const firstOfMonth = new Date(ref.getFullYear(), ref.getMonth(), 1);
+	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone(ref);
 
 	await prisma.expensePayment.deleteMany({
 		where: {
 			expenseId,
-			referenceMonth: firstOfMonth,
+			referenceMonth: { gte: startOfMonth, lt: endOfMonth },
 		},
 	});
 

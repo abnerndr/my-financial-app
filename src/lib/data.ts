@@ -10,13 +10,13 @@ import {
 import { sendWhatsAppText } from "@/lib/evolution-api";
 import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { getMonthRangeInTimeZone } from "@/lib/month";
 
 export async function getDashboardData() {
 	const session = await getSession();
 	if (!session?.user?.id) return null;
 
-	const now = new Date();
-	const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone();
 
 	const [expenses, incomes, settings, paymentsThisMonth] = await Promise.all([
 		prisma.expense.findMany({ where: { userId: session.user.id } }),
@@ -27,7 +27,7 @@ export async function getDashboardData() {
 		(prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ expense: { value: unknown } }>> } }).expensePayment.findMany({
 			where: {
 				expense: { userId: session.user.id },
-				referenceMonth: firstOfMonth,
+				referenceMonth: { gte: startOfMonth, lt: endOfMonth },
 			},
 			include: { expense: { select: { value: true } } },
 		}),
@@ -111,10 +111,8 @@ export async function getExpenses() {
 export async function getExpensesWithPaymentStatus(year?: number, month?: number) {
 	const session = await getSession();
 	if (!session?.user?.id) return [];
-	const now = new Date();
-	const y = year ?? now.getFullYear();
-	const m = month ?? now.getMonth();
-	const firstOfMonth = new Date(y, m, 1);
+	const baseDate = year != null && month != null ? new Date(year, month, 1) : new Date();
+	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone(baseDate);
 
 	const [expenses, paidIds] = await Promise.all([
 		prisma.expense.findMany({
@@ -123,7 +121,7 @@ export async function getExpensesWithPaymentStatus(year?: number, month?: number
 		}),
 		(prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ expenseId: string }>> } }).expensePayment
 			.findMany({
-				where: { referenceMonth: firstOfMonth, expense: { userId: session.user.id } },
+				where: { referenceMonth: { gte: startOfMonth, lt: endOfMonth }, expense: { userId: session.user.id } },
 				select: { expenseId: true },
 			})
 			.then((list: Array<{ expenseId: string }>) => new Set(list.map((p) => p.expenseId))),
@@ -148,15 +146,13 @@ export async function getExpensesWithPaymentStatus(year?: number, month?: number
 export async function getPaymentsHistory(year?: number, month?: number) {
 	const session = await getSession();
 	if (!session?.user?.id) return [];
-	const now = new Date();
-	const y = year ?? now.getFullYear();
-	const m = month ?? now.getMonth();
-	const start = new Date(y, m, 1);
+	const baseDate = year != null && month != null ? new Date(year, month, 1) : new Date();
+	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone(baseDate);
 
 	const payments = await (prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ id: string; expenseId: string; referenceMonth: Date; paidAt: Date; expense: { title: string; value: unknown } }>> } }).expensePayment.findMany({
 		where: {
 			expense: { userId: session.user.id },
-			referenceMonth: start,
+			referenceMonth: { gte: startOfMonth, lt: endOfMonth },
 		},
 		include: { expense: true },
 		orderBy: { paidAt: "desc" },
