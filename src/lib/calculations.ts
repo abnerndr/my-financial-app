@@ -5,10 +5,10 @@ function toNumber(d: Decimal | number): number {
 	return typeof d === "number" ? d : Number(d);
 }
 
-/** Soma de rendas por tipo (mensal: salário + benefícios; guardado conta como reserva) */
+/** Soma de rendas mensais (salário, benefícios e outros). Guardado fica em totalSaved. */
 export function totalMonthlyIncome(incomes: Income[]): number {
 	return incomes
-		.filter((i) => i.type === "SALARY" || i.type === "BENEFITS")
+		.filter((i) => i.type === "SALARY" || i.type === "BENEFITS" || i.type === "OTHER")
 		.reduce((acc, i) => acc + toNumber(i.value), 0);
 }
 
@@ -55,21 +55,29 @@ export function remainingBalance(
 	return monthlyInc + saved - monthlyRecurring - oneTimeTotal;
 }
 
-/** Percentual do "limite de aviso": ex. 90% = alerta quando restar 10% do que seria o total disponível */
+/** Percentual do "limite de aviso": ex. 90% = alerta quando o uso atingir 90% do disponível. */
 export function usagePercent(
 	incomes: Income[],
 	expenses: Expense[],
 	warningLimitPercent: number
 ): { usedPercent: number; remainingPercent: number; isCritical: boolean } {
 	const totalAvailable = totalMonthlyIncome(incomes) + totalSaved(incomes);
+	// totalMonthlyExpenses já inclui ONE_TIME uma vez — não somar de novo
+	const used = totalMonthlyExpenses(expenses);
+
 	if (totalAvailable <= 0) {
-		return { usedPercent: 100, remainingPercent: 0, isCritical: true };
+		const hasSpending = used > 0;
+		return {
+			usedPercent: hasSpending ? 100 : 0,
+			remainingPercent: hasSpending ? 0 : 100,
+			// Sem renda cadastrada: só crítico se há gasto e o alerta está configurado
+			isCritical: warningLimitPercent > 0 && hasSpending,
+		};
 	}
-	const totalSpent = totalMonthlyExpenses(expenses);
-	const oneTime = expenses.filter((e) => e.frequency === "ONE_TIME").reduce((acc, e) => acc + toNumber(e.value), 0);
-	const used = totalSpent + oneTime;
+
 	const usedPercent = Math.min(100, (used / totalAvailable) * 100);
 	const remainingPercent = Math.max(0, 100 - usedPercent);
-	const isCritical = remainingPercent <= 100 - warningLimitPercent;
+	// Ex.: limite 90% → crítico quando o uso atinge/ultrapassa 90%
+	const isCritical = warningLimitPercent > 0 && usedPercent >= warningLimitPercent;
 	return { usedPercent, remainingPercent, isCritical };
 }

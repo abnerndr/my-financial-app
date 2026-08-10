@@ -107,8 +107,8 @@ export default async function DashboardPage() {
 						<Badge variant={isCritical ? "critical" : "success"}>{remainingPercent.toFixed(0)}% restante</Badge>
 					</div>
 					<CardDescription>
-						Alerta configurado em {warningLimitPercent}% de uso. Quando o valor gasto ultrapassar {warningLimitPercent}%
-						do disponível, o status fica crítico.
+						Alerta configurado em {warningLimitPercent}% de uso. Uso atual: {usedPercent.toFixed(0)}%. Quando o valor
+						gasto atingir {warningLimitPercent}% do disponível (renda + guardado), o status fica crítico.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

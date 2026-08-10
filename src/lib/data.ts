@@ -56,7 +56,7 @@ export async function getDashboardData() {
 		if (!recentAlert) {
 			await createAlert(
 				"LIMIT_WARNING",
-				`Atenção: você atingiu ${warningPercent}% do limite. Restam ${remainingPercent.toFixed(0)}% do orçamento.`,
+				`Atenção: você usou ${usedPercent.toFixed(0)}% do disponível (limite: ${warningPercent}%). Restam ${remainingPercent.toFixed(0)}% do orçamento.`,
 				{ usedPercent, remainingPercent, warningPercent },
 			);
 
@@ -66,7 +66,7 @@ export async function getDashboardData() {
 				const message = [
 					"*Alerta de limite de gastos*",
 					"",
-					`Você atingiu o limite de *${warningPercent.toFixed(0)}%* do seu orçamento.`,
+					`Você usou *${usedPercent.toFixed(0)}%* do orçamento (limite: *${warningPercent.toFixed(0)}%*).`,
 					`Valor ainda disponível para gastar: *${formatCurrency(remainingMoney)}*.`,
 					"",
 					"Reveja seus gastos para não ultrapassar o limite configurado.",
