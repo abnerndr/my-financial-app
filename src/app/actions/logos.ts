@@ -68,8 +68,20 @@ export async function createLogo(input: {
 		return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
 	}
 
-	if (parsed.data.source === "UPLOAD" && !parsed.data.r2Key) {
-		return { error: "Upload incompleto (r2Key ausente)" };
+	if (parsed.data.source === "UPLOAD") {
+		if (!parsed.data.r2Key) {
+			return { error: "Upload incompleto (r2Key ausente)" };
+		}
+
+		const expectedPrefix = `logos/${session.user.id}/`;
+		if (!parsed.data.r2Key.startsWith(expectedPrefix)) {
+			return { error: "r2Key inválido para este usuário" };
+		}
+
+		const publicBase = process.env.R2_PUBLIC_URL?.trim().replace(/\/$/, "");
+		if (publicBase && parsed.data.url !== `${publicBase}/${parsed.data.r2Key}`) {
+			return { error: "URL não corresponde ao arquivo enviado" };
+		}
 	}
 
 	const category = await prisma.logoCategory.findUnique({
@@ -118,11 +130,12 @@ export async function deleteLogo(id: string) {
 
 	// Desvincula dos gastos sem apagar a URL exibida (evita quebrar UI existente).
 	await prisma.expense.updateMany({
-		where: { logoId: id },
+		where: { logoId: id, userId: session.user.id },
 		data: { logoId: null },
 	});
 
-	if (logo.source === "UPLOAD" && logo.r2Key) {
+	const expectedPrefix = `logos/${session.user.id}/`;
+	if (logo.source === "UPLOAD" && logo.r2Key && logo.r2Key.startsWith(expectedPrefix)) {
 		try {
 			await deleteLogoFromR2(logo.r2Key);
 		} catch (e) {
