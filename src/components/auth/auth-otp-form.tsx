@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { OtpInput } from "@/components/ui/otp-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -149,16 +150,15 @@ export function AuthOtpForm({
 							placeholder="seu@email.com"
 						/>
 					) : (
-						<Field
-							label="Digite seu WhatsApp"
-							type="tel"
-							inputMode="tel"
-							autoComplete="tel"
-							enterKeyHint="done"
-							value={destination}
-							onChange={(e) => setDestination(e.target.value)}
-							placeholder="+55 11 99999-9999"
-						/>
+						<Field label="Digite seu WhatsApp">
+							<PhoneInput
+								kind="mobile"
+								variant="auth"
+								value={destination}
+								onChange={setDestination}
+								enterKeyHint="done"
+							/>
+						</Field>
 					)}
 
 					{error ? <p className="text-sm text-destructive">{error}</p> : null}

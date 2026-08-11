@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { phoneLookupValues } from "@/lib/phone";
 import { NextResponse } from "next/server";
 
 function getApiKey(request: Request): string | null {
@@ -17,11 +18,7 @@ function getPhone(request: Request): string | null {
  * GET /api/integrations/expenses
  * Headers:
  *   - X-API-Key: <sua-chave> (ou Authorization: Bearer <sua-chave>)
- *   - ou X-Phone: +5511999999999 (telefone já verificado na plataforma)
- *
- * Retorna:
- *   - 200 { valid: true, userId: string } se encontrado
- *   - 200 { valid: false } se não encontrado
+ *   - ou X-Phone: 5511999999999 (telefone já verificado; aceita com +)
  */
 export async function GET(request: Request) {
 	try {
@@ -39,8 +36,9 @@ export async function GET(request: Request) {
 		}
 
 		if (!userId && phone) {
+			const variants = phoneLookupValues(phone);
 			const settings = await prisma.userSettings.findFirst({
-				where: { phone, phoneVerified: true },
+				where: { phone: { in: variants }, phoneVerified: true },
 				select: { userId: true },
 			});
 			if (settings) userId = settings.userId;

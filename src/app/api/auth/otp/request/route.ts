@@ -8,6 +8,7 @@ import {
 	storeOtp,
 	type OtpChannel,
 } from "@/lib/otp";
+import { isValidBrazilPhone, phoneLookupValues } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 
 const bodySchema = z.object({
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
 		if (channel === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destination)) {
 			return NextResponse.json({ error: "Email inválido" }, { status: 400 });
 		}
-		if (channel === "whatsapp" && destination.replace(/\D/g, "").length < 10) {
+		if (channel === "whatsapp" && !isValidBrazilPhone(destination)) {
 			return NextResponse.json({ error: "Telefone inválido" }, { status: 400 });
 		}
 
@@ -61,14 +62,15 @@ export async function POST(request: Request) {
 		}
 
 		if (intent === "register" && channel === "whatsapp") {
+			const variants = phoneLookupValues(destination);
 			const existing = await prisma.user.findFirst({
-				where: { OR: [{ phone: destination }, { settings: { phone: destination } }] },
+				where: { OR: [{ phone: { in: variants } }, { settings: { phone: { in: variants } } }] },
 			});
 			if (existing?.phoneVerified) {
 				return NextResponse.json({ error: "Este telefone já está cadastrado. Faça login." }, { status: 409 });
 			}
 			if (!existing) {
-				const syntheticEmail = `wa_${destination.replace(/\D/g, "")}@whatsapp.local`;
+				const syntheticEmail = `wa_${destination}@whatsapp.local`;
 				await prisma.user.create({
 					data: {
 						email: syntheticEmail,

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppText } from "@/lib/evolution-api";
+import { normalizePhoneDigits } from "@/lib/phone";
 import { randomInt } from "crypto";
 
 export type OtpChannel = "email" | "whatsapp";
@@ -58,12 +59,7 @@ export async function sendOtpWhatsApp(phone: string, code: string): Promise<bool
 	return sendWhatsAppText(phone, message);
 }
 
-/** Normaliza telefone para E.164 simples (+ e dígitos). */
+/** Normaliza telefone para gravação: só dígitos (ex.: 5511999999999). */
 export function normalizePhone(input: string): string {
-	const digits = input.replace(/\D/g, "");
-	if (!digits) return "";
-	if (input.trim().startsWith("+")) return `+${digits}`;
-	if (digits.startsWith("55")) return `+${digits}`;
-	if (digits.length === 11 || digits.length === 10) return `+55${digits}`;
-	return `+${digits}`;
+	return normalizePhoneDigits(input);
 }

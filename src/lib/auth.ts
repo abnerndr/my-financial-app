@@ -1,11 +1,12 @@
-import { prisma } from "@/lib/prisma";
 import { normalizePhone, verifyStoredOtp, type OtpChannel } from "@/lib/otp";
+import { phoneLookupValues } from "@/lib/phone";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import { prisma } from "@/lib/prisma";
 
 const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
@@ -68,11 +69,14 @@ export const authOptions: NextAuthOptions = {
 				}
 
 				// WhatsApp
+				const phoneVariants = phoneLookupValues(destination);
 				let user = await prisma.user.findFirst({
-					where: { OR: [{ phone: destination }, { settings: { phone: destination } }] },
+					where: {
+						OR: [{ phone: { in: phoneVariants } }, { settings: { phone: { in: phoneVariants } } }],
+					},
 				});
 				if (!user) {
-					const syntheticEmail = `wa_${destination.replace(/\D/g, "")}@whatsapp.local`;
+					const syntheticEmail = `wa_${destination}@whatsapp.local`;
 					user = await prisma.user.create({
 						data: {
 							email: syntheticEmail,
@@ -88,7 +92,7 @@ export const authOptions: NextAuthOptions = {
 				} else {
 					await prisma.user.update({
 						where: { id: user.id },
-						data: { phone: user.phone ?? destination, phoneVerified: new Date() },
+						data: { phone: destination, phoneVerified: new Date() },
 					});
 					await prisma.userSettings.upsert({
 						where: { userId: user.id },

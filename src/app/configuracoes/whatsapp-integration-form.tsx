@@ -4,6 +4,8 @@ import { updatePhone, updateWhatsappNotifications } from "@/app/actions/settings
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { normalizePhoneDigits } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -17,7 +19,7 @@ type Props = {
 export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, defaultWhatsappEnabled }: Props) {
 	const router = useRouter();
 	const [isPending, startTransition] = useTransition();
-	const [phone, setPhone] = useState(defaultPhone ?? "");
+	const [phone, setPhone] = useState(() => (defaultPhone ? normalizePhoneDigits(defaultPhone) : ""));
 	const [codeInput, setCodeInput] = useState("");
 	const [codeSent, setCodeSent] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 		setCodeSent(false);
 		setCodeInput("");
 		startTransition(async () => {
-			const result = await updatePhone(phone.trim() || null);
+			const result = await updatePhone(phone || null);
 			if (result && "error" in result) {
 				setError(result.error ?? "Erro ao salvar");
 				return;
@@ -38,7 +40,8 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 
 	const handleRequestCode = () => {
 		setError(null);
-		if (phone.trim() !== (defaultPhone ?? "")) {
+		const saved = defaultPhone ? normalizePhoneDigits(defaultPhone) : "";
+		if (phone !== saved) {
 			setError("Salve o número antes de solicitar o código.");
 			return;
 		}
@@ -47,7 +50,7 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 				const res = await fetch("/api/integrations/whatsapp/request-code", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ phone: phone.trim() }),
+					body: JSON.stringify({ phone }),
 				});
 				const data = await res.json();
 				if (!res.ok) {
@@ -73,7 +76,7 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 				const res = await fetch("/api/integrations/whatsapp/verify", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ phone: phone.trim(), code: codeInput.trim() }),
+					body: JSON.stringify({ phone, code: codeInput.trim() }),
 				});
 				const data = await res.json();
 				if (!res.ok) {
@@ -101,30 +104,31 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 			{error && <p className="text-sm text-destructive rounded-md bg-destructive/10 p-2">{error}</p>}
 
 			<div className="space-y-2">
-				<Label htmlFor="phone">Número de telefone (WhatsApp)</Label>
+				<Label htmlFor="phone">Número de celular (WhatsApp)</Label>
 				<p className="text-sm text-muted-foreground">
-					Formato internacional: +5511999999999. Usado para enviar notificações e identificar você ao enviar gastos via
-					WhatsApp.
+					Digite com DDD. Usado para notificações e para identificar você ao enviar gastos via WhatsApp.
 				</p>
-				<div className="flex gap-2">
-					<Input
+				<div className="flex flex-col gap-2 sm:flex-row">
+					<PhoneInput
 						id="phone"
-						type="tel"
-						inputMode="tel"
-						autoComplete="tel"
-						enterKeyHint="done"
-						placeholder="+5511999999999"
+						kind="mobile"
 						value={phone}
-						onChange={(e) => setPhone(e.target.value)}
+						onChange={setPhone}
 						disabled={isPending}
+						className="flex-1"
 					/>
-					<Button type="button" onClick={handleSavePhone} disabled={isPending}>
+					<Button
+						type="button"
+						onClick={handleSavePhone}
+						disabled={isPending}
+						className="h-12 w-full sm:h-10 sm:w-auto"
+					>
 						Salvar
 					</Button>
 				</div>
 			</div>
 
-			{phone.trim() && (
+			{phone && (
 				<>
 					{defaultPhoneVerified ? (
 						<div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
@@ -135,14 +139,20 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 						</div>
 					) : (
 						<>
-							<div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+							<div className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
 								<div>
 									<p className="font-medium">Status do telefone</p>
 									<p className="text-sm text-muted-foreground">
 										Não verificado. O código será enviado para o seu WhatsApp.
 									</p>
 								</div>
-								<Button type="button" variant="outline" onClick={handleRequestCode} disabled={isPending}>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={handleRequestCode}
+									disabled={isPending}
+									className="w-full sm:w-auto"
+								>
 									Solicitar código
 								</Button>
 							</div>
@@ -150,7 +160,7 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 							{codeSent && (
 								<div className="rounded-lg border border-primary/50 bg-primary/5 p-4 space-y-3">
 									<p className="font-medium">Digite o código recebido no WhatsApp</p>
-									<div className="flex gap-2">
+									<div className="flex flex-col gap-2 sm:flex-row">
 										<Input
 											type="text"
 											inputMode="numeric"
@@ -161,7 +171,12 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 											disabled={isPending}
 											className="font-mono text-lg tracking-widest max-w-32"
 										/>
-										<Button type="button" onClick={handleVerifyCode} disabled={isPending || codeInput.length !== 6}>
+										<Button
+											type="button"
+											onClick={handleVerifyCode}
+											disabled={isPending || codeInput.length !== 6}
+											className="w-full sm:w-auto"
+										>
 											Verificar
 										</Button>
 									</div>

@@ -1,6 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/auth";
+import { isValidBrazilPhone, normalizePhoneDigits } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
@@ -10,12 +11,15 @@ const settingsSchema = z.object({
 	warningLimitPercent: z.number().min(1).max(99),
 });
 
-/** Formato E.164: +5511999999999. Aceita vazio para remover. */
+/** Só dígitos, com DDI 55 (ex.: 5511999999999). Aceita vazio para remover. */
 const phoneSchema = z.preprocess(
-	(v) => (v === "" ? null : v),
+	(v) => {
+		if (v === "" || v == null) return null;
+		return normalizePhoneDigits(String(v));
+	},
 	z
 		.string()
-		.regex(/^\+[1-9]\d{6,14}$/, "Use o formato internacional: +5511999999999")
+		.refine(isValidBrazilPhone, "Informe um telefone válido com DDD")
 		.nullable()
 );
 

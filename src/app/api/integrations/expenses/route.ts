@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { parseDateOnly } from "@/lib/date-only";
 import { parseCurrencyInput } from "@/lib/money";
+import { phoneLookupValues } from "@/lib/phone";
 import type { ExpenseFrequency } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -54,8 +55,9 @@ export async function POST(request: Request) {
 		}
 
 		if (!userId && phone) {
+			const variants = phoneLookupValues(phone);
 			const settings = await prisma.userSettings.findFirst({
-				where: { phone, phoneVerified: true },
+				where: { phone: { in: variants }, phoneVerified: true },
 				select: { userId: true },
 			});
 			if (settings) userId = settings.userId;

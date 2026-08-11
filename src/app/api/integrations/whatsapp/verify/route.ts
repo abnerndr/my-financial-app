@@ -1,3 +1,4 @@
+import { normalizePhoneDigits, phoneLookupValues } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -8,12 +9,8 @@ const bodySchema = z.object({
 });
 
 /**
- * API pública para o n8n: verificar telefone via WhatsApp.
- * Quando o usuário envia o código pelo WhatsApp, o n8n chama esta API
- * com o número de quem enviou e o texto da mensagem (código).
- *
  * POST /api/integrations/whatsapp/verify
- * Body: { "phone": "+5511999999999", "code": "123456" }
+ * Body: { "phone": "5511999999999", "code": "123456" }
  */
 export async function POST(request: Request) {
 	try {
@@ -26,12 +23,14 @@ export async function POST(request: Request) {
 			);
 		}
 
-		const { phone, code } = parsed.data;
+		const phone = normalizePhoneDigits(parsed.data.phone);
+		const { code } = parsed.data;
 		const now = new Date();
+		const variants = phoneLookupValues(phone);
 
 		const settings = await prisma.userSettings.findFirst({
 			where: {
-				phone,
+				phone: { in: variants },
 				verificationCode: code,
 				verificationCodeExpiresAt: { gt: now },
 			},
@@ -47,6 +46,7 @@ export async function POST(request: Request) {
 		await prisma.userSettings.update({
 			where: { id: settings.id },
 			data: {
+				phone,
 				phoneVerified: true,
 				verificationCode: null,
 				verificationCodeExpiresAt: null,

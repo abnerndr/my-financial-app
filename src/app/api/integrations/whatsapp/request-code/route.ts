@@ -1,4 +1,5 @@
 import { sendWhatsAppText } from "@/lib/evolution-api";
+import { normalizePhoneDigits, phoneLookupValues } from "@/lib/phone";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
@@ -11,13 +12,8 @@ const bodySchema = z.object({
 const CODE_EXPIRY_MINUTES = 10;
 
 /**
- * API pública: solicitar código de verificação e enviar via WhatsApp (Evolution API).
- * Recebe o número, gera um código válido para /verify e, se configurada a Evolution API,
- * envia a mensagem automaticamente. Caso contrário, retorna o código para o n8n enviar.
- *
  * POST /api/integrations/whatsapp/request-code
- * Body: { "phone": "+5511999999999" }
- * Response: { "code": "123456", "sent": true } ou { "code": "123456", "sent": false }
+ * Body: { "phone": "5511999999999" } (só dígitos; aceita máscara/+ e normaliza)
  */
 export async function POST(request: Request) {
 	try {
@@ -30,10 +26,11 @@ export async function POST(request: Request) {
 			);
 		}
 
-		const { phone } = parsed.data;
+		const phone = normalizePhoneDigits(parsed.data.phone);
+		const variants = phoneLookupValues(phone);
 
 		const settings = await prisma.userSettings.findFirst({
-			where: { phone },
+			where: { phone: { in: variants } },
 		});
 
 		if (!settings) {
@@ -51,12 +48,12 @@ export async function POST(request: Request) {
 		await prisma.userSettings.update({
 			where: { id: settings.id },
 			data: {
+				phone,
 				verificationCode: code,
 				verificationCodeExpiresAt: expiresAt,
 			},
 		});
 
-		// Envia via Evolution API se configurada (https://doc.evolution-api.com)
 		const message = `Seu código de verificação é: *${code}*\n\nVálido por ${CODE_EXPIRY_MINUTES} minutos.`;
 		const sent = await sendWhatsAppText(phone, message);
 
