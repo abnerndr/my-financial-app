@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
 import { getSettings } from "@/lib/data";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NotificationToggle } from "./notification-toggle";
@@ -71,6 +71,21 @@ export default async function ConfiguracoesPage() {
 					/>
 				</CardContent>
 			</Card>
+
+			<Link href="/logos">
+				<Card className="transition-colors hover:bg-muted/50">
+					<CardHeader className="flex flex-row items-center justify-between">
+						<div className="flex items-center gap-2">
+							<ImageIcon className="size-4 text-muted-foreground" />
+							<CardTitle className="text-base">Logos</CardTitle>
+						</div>
+						<ArrowRight className="size-4 text-muted-foreground" />
+					</CardHeader>
+					<CardContent>
+						<p className="text-sm text-muted-foreground">Gerencie categorias e logos usados nos seus gastos.</p>
+					</CardContent>
+				</Card>
+			</Link>
 		</div>
 	);
 }

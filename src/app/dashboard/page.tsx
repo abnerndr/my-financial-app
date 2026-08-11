@@ -10,6 +10,7 @@ import {
 	BarChart3,
 	Bell,
 	CheckCircle2,
+	Image as ImageIcon,
 	List,
 	LogOut,
 	Plus,
@@ -72,6 +73,11 @@ export default async function DashboardPage() {
 					<Button asChild size="sm" variant="outline">
 						<Link href="/relatorios">
 							<BarChart3 className="mr-1 size-4" /> Relatórios
+						</Link>
+					</Button>
+					<Button asChild size="sm" variant="outline">
+						<Link href="/logos">
+							<ImageIcon className="mr-1 size-4" /> Logos
 						</Link>
 					</Button>
 					<Button asChild size="sm" variant="ghost">
