@@ -42,6 +42,10 @@ export async function POST(request: Request) {
 		return NextResponse.json({ url, r2Key }, { status: 201 });
 	} catch (e) {
 		console.error("[logos/upload]", e);
+		const message = e instanceof Error ? e.message : "";
+		if (message.includes("Configuração R2 incompleta")) {
+			return NextResponse.json({ error: message }, { status: 503 });
+		}
 		return NextResponse.json({ error: "Erro ao enviar arquivo" }, { status: 500 });
 	}
 }

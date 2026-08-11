@@ -102,7 +102,14 @@ export function ExpenseTable({
 						<TableRow key={e.id}>
 							<TableCell>
 								{e.logoUrl ? (
-									<Image src={e.logoUrl} alt="" width={32} height={32} className="rounded object-cover" />
+									<Image
+										src={e.logoUrl}
+										alt=""
+										width={32}
+										height={32}
+										unoptimized
+										className="rounded object-cover"
+									/>
 								) : (
 									<span className="text-muted-foreground">—</span>
 								)}

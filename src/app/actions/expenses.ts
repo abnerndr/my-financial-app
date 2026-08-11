@@ -16,6 +16,10 @@ const expenseSchema = z.object({
 	dueDate: z.string().optional(), // ISO date; opcional no servidor, obrigatório no front
 });
 
+const updateExpenseSchema = expenseSchema.extend({
+	clearLogo: z.string().optional().or(z.literal("")),
+});
+
 /** Resolve logoId/logoUrl a partir da biblioteca de logos do usuário (ou logos de sistema). */
 async function resolveLogo(
 	userId: string,
@@ -77,10 +81,11 @@ export async function updateExpense(id: string, formData: FormData) {
 	const session = await getSession();
 	if (!session?.user?.id) return { error: "Não autorizado" };
 
-	const parsed = expenseSchema.safeParse({
+	const parsed = updateExpenseSchema.safeParse({
 		title: formData.get("title"),
 		description: formData.get("description") || undefined,
 		logoId: formData.get("logoId") || undefined,
+		clearLogo: formData.get("clearLogo") || undefined,
 		value: Number(formData.get("value")),
 		frequency: formData.get("frequency") as ExpenseFrequency,
 		dueDate: formData.get("dueDate") || undefined,
@@ -90,8 +95,28 @@ export async function updateExpense(id: string, formData: FormData) {
 		return { error: parsed.error.flatten().fieldErrors as Record<string, string[] | undefined> };
 	}
 
-	const logo = await resolveLogo(session.user.id, parsed.data.logoId);
-	if ("error" in logo) return { error: logo.error };
+	const current = await prisma.expense.findFirst({
+		where: { id, userId: session.user.id },
+		select: { logoId: true, logoUrl: true },
+	});
+	if (!current) return { error: "Gasto não encontrado" };
+
+	let logoId: string | null;
+	let logoUrl: string | null;
+
+	if (parsed.data.clearLogo === "1") {
+		logoId = null;
+		logoUrl = null;
+	} else if (parsed.data.logoId) {
+		const logo = await resolveLogo(session.user.id, parsed.data.logoId);
+		if ("error" in logo) return { error: logo.error };
+		logoId = logo.logoId;
+		logoUrl = logo.logoUrl;
+	} else {
+		// Nenhuma alteração de logo enviada: preserva logoId/logoUrl atuais (inclui logoUrl legado sem logoId).
+		logoId = current.logoId;
+		logoUrl = current.logoUrl;
+	}
 
 	const dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
 
@@ -100,8 +125,8 @@ export async function updateExpense(id: string, formData: FormData) {
 		data: {
 			title: parsed.data.title,
 			description: parsed.data.description || null,
-			logoId: logo.logoId,
-			logoUrl: logo.logoUrl,
+			logoId,
+			logoUrl,
 			value: parsed.data.value,
 			frequency: parsed.data.frequency,
 			dueDate,

@@ -17,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -56,6 +56,7 @@ export function ExpenseEditModal({
 	onOpenChange: (open: boolean) => void;
 }) {
 	const router = useRouter();
+	const clearLogoRef = useRef(false);
 	const form = useForm<FormData>({
 		resolver: zodResolver(schema),
 		defaultValues: {
@@ -71,6 +72,7 @@ export function ExpenseEditModal({
 
 	useEffect(() => {
 		if (expense) {
+			clearLogoRef.current = false;
 			form.reset({
 				title: expense.title,
 				description: expense.description ?? "",
@@ -90,6 +92,7 @@ export function ExpenseEditModal({
 			fd.set("title", data.title);
 			fd.set("description", data.description ?? "");
 			fd.set("logoId", data.logoId ?? "");
+			if (clearLogoRef.current) fd.set("clearLogo", "1");
 			fd.set("value", String(data.value));
 			fd.set("frequency", data.frequency);
 			fd.set("dueDate", data.dueDate);
@@ -118,6 +121,7 @@ export function ExpenseEditModal({
 							library={library}
 							value={{ logoId: form.watch("logoId") ?? null, logoUrl: form.watch("logoUrl") ?? null }}
 							onChange={(next) => {
+								clearLogoRef.current = next.logoId === null && next.logoUrl === null;
 								form.setValue("logoId", next.logoId);
 								form.setValue("logoUrl", next.logoUrl);
 							}}
