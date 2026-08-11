@@ -68,6 +68,10 @@ export async function createLogo(input: {
 		return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
 	}
 
+	if (parsed.data.source === "UPLOAD" && !parsed.data.r2Key) {
+		return { error: "Upload incompleto (r2Key ausente)" };
+	}
+
 	const category = await prisma.logoCategory.findUnique({
 		where: { id: parsed.data.categoryId },
 		select: { userId: true },
@@ -89,7 +93,7 @@ export async function createLogo(input: {
 				userId: session.user.id,
 				source: parsed.data.source,
 				url: parsed.data.url,
-				r2Key: parsed.data.r2Key || null,
+				r2Key: parsed.data.source === "UPLOAD" ? parsed.data.r2Key ?? null : null,
 			},
 		});
 		revalidateLogoPaths();
