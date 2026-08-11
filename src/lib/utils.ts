@@ -20,8 +20,13 @@ export function getDueDateForMonth(
 	month: number
 ): Date | null {
 	if (!dueDate) return null;
-	if (frequency === "ONE_TIME") return dueDate;
-	const day = dueDate.getDate();
+	// dueDate é calendário UTC (parseDateOnly) — reconstrói em horário local para exibição
+	const day = dueDate.getUTCDate();
+	const utcMonth = dueDate.getUTCMonth();
+	const utcYear = dueDate.getUTCFullYear();
+	if (frequency === "ONE_TIME") {
+		return new Date(utcYear, utcMonth, day);
+	}
 	const d = new Date(year, month, Math.min(day, new Date(year, month + 1, 0).getDate()));
 	return d;
 }

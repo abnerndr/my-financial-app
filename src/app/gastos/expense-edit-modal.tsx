@@ -3,6 +3,7 @@
 import { updateExpense } from "@/app/actions/expenses";
 import { LogoPicker, type LogoLibrary } from "@/components/logos/logo-picker";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import {
 	Dialog,
 	DialogContent,
@@ -14,11 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { todayDateOnly } from "@/lib/date-only";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 const schema = z.object({
@@ -66,7 +68,7 @@ export function ExpenseEditModal({
 			logoUrl: null,
 			value: 0,
 			frequency: "MONTHLY",
-			dueDate: new Date().toISOString().slice(0, 10),
+			dueDate: todayDateOnly(),
 		},
 	});
 
@@ -80,7 +82,7 @@ export function ExpenseEditModal({
 				logoUrl: expense.logoUrl ?? null,
 				value: expense.value,
 				frequency: expense.frequency as FormData["frequency"],
-				dueDate: expense.dueDate ? expense.dueDate.slice(0, 10) : new Date().toISOString().slice(0, 10),
+				dueDate: expense.dueDate ? expense.dueDate.slice(0, 10) : todayDateOnly(),
 			});
 		}
 	}, [expense, form]);
@@ -93,7 +95,7 @@ export function ExpenseEditModal({
 			fd.set("description", data.description ?? "");
 			fd.set("logoId", data.logoId ?? "");
 			if (clearLogoRef.current) fd.set("clearLogo", "1");
-			fd.set("value", String(data.value));
+			fd.set("value", data.value.toFixed(2));
 			fd.set("frequency", data.frequency);
 			fd.set("dueDate", data.dueDate);
 			return updateExpense(expense.id, fd);
@@ -114,7 +116,7 @@ export function ExpenseEditModal({
 				<DialogHeader>
 					<DialogTitle>Editar gasto</DialogTitle>
 				</DialogHeader>
-				<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+				<form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5 md:gap-4">
 					<div className="space-y-2">
 						<Label>Logo (opcional)</Label>
 						<LogoPicker
@@ -129,22 +131,26 @@ export function ExpenseEditModal({
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="edit-title">Nome</Label>
-						<Input id="edit-title" {...form.register("title")} placeholder="Ex: Aluguel" />
+						<Input id="edit-title" {...form.register("title")} placeholder="Ex: Aluguel" enterKeyHint="next" />
 						{form.formState.errors.title && (
 							<p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
 						)}
 					</div>
 					<div className="space-y-2">
-						<Label htmlFor="edit-value">Valor (R$)</Label>
-						<Input
-							id="edit-value"
-							type="number"
-							inputMode="decimal"
-							enterKeyHint="next"
-							autoComplete="off"
-							step="0.01"
-							{...form.register("value", { valueAsNumber: true })}
-							placeholder="0,00"
+						<Label htmlFor="edit-value">Valor</Label>
+						<Controller
+							control={form.control}
+							name="value"
+							render={({ field }) => (
+								<CurrencyInput
+									id="edit-value"
+									value={field.value}
+									onChange={field.onChange}
+									onBlur={field.onBlur}
+									name={field.name}
+									enterKeyHint="next"
+								/>
+							)}
 						/>
 						{form.formState.errors.value && (
 							<p className="text-sm text-destructive">{form.formState.errors.value.message}</p>
@@ -152,14 +158,25 @@ export function ExpenseEditModal({
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="edit-dueDate">Data de vencimento</Label>
-						<Input id="edit-dueDate" type="date" {...form.register("dueDate")} />
+						<Input
+							id="edit-dueDate"
+							type="date"
+							className="min-h-12 md:min-h-10"
+							{...form.register("dueDate")}
+						/>
 						{form.formState.errors.dueDate && (
 							<p className="text-sm text-destructive">{form.formState.errors.dueDate.message}</p>
 						)}
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="edit-description">Descrição (opcional)</Label>
-						<Textarea id="edit-description" {...form.register("description")} placeholder="Opcional" rows={2} />
+						<Textarea
+							id="edit-description"
+							{...form.register("description")}
+							placeholder="Opcional"
+							rows={2}
+							className="min-h-20 md:min-h-0"
+						/>
 					</div>
 					<div className="space-y-2">
 						<Label>Periodicidade</Label>
@@ -177,11 +194,16 @@ export function ExpenseEditModal({
 							</SelectContent>
 						</Select>
 					</div>
-					<DialogFooter>
-						<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+					<DialogFooter className="gap-2 pt-2 md:gap-0 md:pt-0">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+							className="h-12 w-full md:h-10 md:w-auto"
+						>
 							Cancelar
 						</Button>
-						<Button type="submit" disabled={mutation.isPending}>
+						<Button type="submit" disabled={mutation.isPending} className="h-12 w-full md:h-10 md:w-auto">
 							{mutation.isPending ? "Salvando..." : "Salvar alterações"}
 						</Button>
 					</DialogFooter>

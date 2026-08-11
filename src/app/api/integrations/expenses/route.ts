@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { parseDateOnly } from "@/lib/date-only";
+import { parseCurrencyInput } from "@/lib/money";
 import type { ExpenseFrequency } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -70,9 +72,12 @@ export async function POST(request: Request) {
 		}
 
 		const body = await request.json();
+		const rawValue = body.value;
+		const parsedValue =
+			typeof rawValue === "string" ? parseCurrencyInput(rawValue) : Number(rawValue);
 		const parsed = expenseBodySchema.safeParse({
 			...body,
-			value: typeof body.value === "string" ? Number(body.value) : body.value,
+			value: parsedValue,
 		});
 
 		if (!parsed.success) {
@@ -84,7 +89,7 @@ export async function POST(request: Request) {
 
 		const { title, description, logoUrl, value, frequency, dueDate } = parsed.data;
 		const frequencyValid = FREQUENCIES.includes(frequency as ExpenseFrequency);
-		const dueDateValue = dueDate ? new Date(dueDate) : null;
+		const dueDateValue = dueDate ? parseDateOnly(dueDate) : null;
 
 		const expense = await prisma.expense.create({
 			data: {

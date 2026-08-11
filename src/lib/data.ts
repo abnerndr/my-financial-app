@@ -7,6 +7,7 @@ import {
 	totalSaved,
 	usagePercent,
 } from "@/lib/calculations";
+import { formatDateOnly } from "@/lib/date-only";
 import { sendWhatsAppText } from "@/lib/evolution-api";
 import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
@@ -136,7 +137,9 @@ export async function getExpensesWithPaymentStatus(year?: number, month?: number
 		logoId: e.logoId ?? null,
 		value: Number(e.value),
 		frequency: e.frequency,
-		dueDate: (e as { dueDate?: Date | null }).dueDate?.toISOString() ?? null,
+		dueDate: (e as { dueDate?: Date | null }).dueDate
+			? formatDateOnly((e as { dueDate: Date }).dueDate)
+			: null,
 		createdAt: e.createdAt.toISOString(),
 		updatedAt: e.updatedAt.toISOString(),
 		paidThisMonth: paidIds.has(e.id),

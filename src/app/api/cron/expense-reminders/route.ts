@@ -19,18 +19,22 @@ function isDueOnDate(
 	frequency: ExpenseFrequency,
 	target: Date
 ): boolean {
-	const d = new Date(dueDate);
-	const t = new Date(target);
+	// dueDate no banco é calendário UTC; target é data local do servidor
+	const dueDay = dueDate.getUTCDate();
+	const dueMonth = dueDate.getUTCMonth();
+	const dueYear = dueDate.getUTCFullYear();
+	const tDay = target.getDate();
+	const tMonth = target.getMonth();
+	const tYear = target.getFullYear();
+
 	if (frequency === "ONE_TIME") {
-		return d.getFullYear() === t.getFullYear() &&
-			d.getMonth() === t.getMonth() &&
-			d.getDate() === t.getDate();
+		return dueYear === tYear && dueMonth === tMonth && dueDay === tDay;
 	}
 	if (frequency === "MONTHLY") {
-		return d.getDate() === t.getDate();
+		return dueDay === tDay;
 	}
 	if (frequency === "ANNUAL") {
-		return d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+		return dueMonth === tMonth && dueDay === tDay;
 	}
 	return false;
 }

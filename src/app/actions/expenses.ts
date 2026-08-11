@@ -1,6 +1,8 @@
 "use server";
 
 import { getSession } from "@/lib/auth";
+import { parseDateOnly } from "@/lib/date-only";
+import { parseCurrencyInput } from "@/lib/money";
 import { getMonthRangeInTimeZone } from "@/lib/month";
 import { prisma } from "@/lib/prisma";
 import type { ExpenseFrequency } from "@prisma/client";
@@ -43,7 +45,7 @@ export async function createExpense(formData: FormData) {
 		title: formData.get("title"),
 		description: formData.get("description") || undefined,
 		logoId: formData.get("logoId") || undefined,
-		value: Number(formData.get("value")),
+		value: parseCurrencyInput(String(formData.get("value") ?? "")),
 		frequency: formData.get("frequency") as ExpenseFrequency,
 		dueDate: formData.get("dueDate") || undefined,
 	});
@@ -55,7 +57,7 @@ export async function createExpense(formData: FormData) {
 	const logo = await resolveLogo(session.user.id, parsed.data.logoId);
 	if ("error" in logo) return { error: logo.error };
 
-	const dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
+	const dueDate = parsed.data.dueDate ? parseDateOnly(parsed.data.dueDate) : null;
 
 	await prisma.expense.create({
 		data: {
@@ -86,7 +88,7 @@ export async function updateExpense(id: string, formData: FormData) {
 		description: formData.get("description") || undefined,
 		logoId: formData.get("logoId") || undefined,
 		clearLogo: formData.get("clearLogo") || undefined,
-		value: Number(formData.get("value")),
+		value: parseCurrencyInput(String(formData.get("value") ?? "")),
 		frequency: formData.get("frequency") as ExpenseFrequency,
 		dueDate: formData.get("dueDate") || undefined,
 	});
@@ -118,7 +120,7 @@ export async function updateExpense(id: string, formData: FormData) {
 		logoUrl = current.logoUrl;
 	}
 
-	const dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
+	const dueDate = parsed.data.dueDate ? parseDateOnly(parsed.data.dueDate) : null;
 
 	await prisma.expense.updateMany({
 		where: { id, userId: session.user.id },

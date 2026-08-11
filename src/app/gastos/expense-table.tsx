@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { LogoLibrary } from "@/components/logos/logo-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { parseDateOnly } from "@/lib/date-only";
 import { formatCurrency, getDueDateForMonth } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import Image from "next/image";
@@ -93,7 +94,7 @@ export function ExpenseTable({
 			<TableBody>
 				{expenses.map((e) => {
 					const dueDate = getDueDateForMonth(
-						e.dueDate ? new Date(e.dueDate) : null,
+						e.dueDate ? parseDateOnly(e.dueDate) : null,
 						e.frequency as "ONE_TIME" | "MONTHLY" | "ANNUAL",
 						year,
 						month

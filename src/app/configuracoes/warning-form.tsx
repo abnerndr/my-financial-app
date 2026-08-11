@@ -37,7 +37,10 @@ export function WarningForm({ defaultPercent }: { defaultPercent: number }) {
 	});
 
 	return (
-		<form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="flex flex-wrap items-end gap-4">
+		<form
+			onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
+			className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end"
+		>
 			<div className="space-y-2">
 				<Label htmlFor="warningLimitPercent">Percentual (%)</Label>
 				<Input
@@ -49,13 +52,13 @@ export function WarningForm({ defaultPercent }: { defaultPercent: number }) {
 					min={1}
 					max={99}
 					{...form.register("warningLimitPercent", { valueAsNumber: true })}
-					className="w-24"
+					className="w-full sm:w-24"
 				/>
 				{form.formState.errors.warningLimitPercent && (
 					<p className="text-sm text-destructive">{form.formState.errors.warningLimitPercent.message}</p>
 				)}
 			</div>
-			<Button type="submit" disabled={mutation.isPending}>
+			<Button type="submit" disabled={mutation.isPending} className="h-12 w-full sm:h-10 sm:w-auto">
 				{mutation.isPending ? "Salvando..." : "Salvar"}
 			</Button>
 		</form>

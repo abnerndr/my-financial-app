@@ -1,6 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/auth";
+import { parseCurrencyInput } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import type { IncomeType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -19,7 +20,7 @@ export async function createIncome(formData: FormData) {
 	const parsed = incomeSchema.safeParse({
 		type: formData.get("type") as IncomeType,
 		title: formData.get("title"),
-		value: Number(formData.get("value")),
+		value: parseCurrencyInput(String(formData.get("value") ?? "")),
 	});
 
 	if (!parsed.success) {
@@ -49,7 +50,7 @@ export async function updateIncome(id: string, formData: FormData) {
 	const parsed = incomeSchema.safeParse({
 		type: formData.get("type") as IncomeType,
 		title: formData.get("title"),
-		value: Number(formData.get("value")),
+		value: parseCurrencyInput(String(formData.get("value") ?? "")),
 	});
 
 	if (!parsed.success) {
