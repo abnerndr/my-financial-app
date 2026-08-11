@@ -2,7 +2,7 @@ import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const protectedPaths = ["/dashboard", "/gastos", "/renda", "/alertas", "/relatorios", "/configuracoes"];
+const protectedPaths = ["/dashboard", "/gastos", "/renda", "/alertas", "/relatorios", "/configuracoes", "/logos"];
 
 function isProtected(pathname: string): boolean {
 	return protectedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -31,5 +31,6 @@ export const config = {
 		"/alertas/:path*",
 		"/relatorios/:path*",
 		"/configuracoes/:path*",
+		"/logos/:path*",
 	],
 };

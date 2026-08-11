@@ -194,3 +194,33 @@ export async function getSettings() {
 		where: { userId: session.user.id },
 	});
 }
+
+/** Categorias (próprias + sistema) com seus logos (próprios + sistema). */
+export async function getLogoLibrary() {
+	const session = await getSession();
+	if (!session?.user?.id) return [];
+
+	const categories = await prisma.logoCategory.findMany({
+		where: { OR: [{ userId: session.user.id }, { userId: null }] },
+		include: {
+			logos: {
+				where: { OR: [{ userId: session.user.id }, { userId: null }] },
+				orderBy: { name: "asc" },
+			},
+		},
+		orderBy: { name: "asc" },
+	});
+
+	return categories.map((category: (typeof categories)[number]) => ({
+		id: category.id,
+		name: category.name,
+		isSystem: category.userId === null,
+		logos: category.logos.map((logo: (typeof category.logos)[number]) => ({
+			id: logo.id,
+			name: logo.name,
+			url: logo.url,
+			source: logo.source,
+			isSystem: logo.userId === null,
+		})),
+	}));
+}
