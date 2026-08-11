@@ -99,3 +99,33 @@ export async function sendNotificationEmail(
 		return false;
 	}
 }
+
+/** OTP de login/cadastro (4 dígitos). */
+export async function sendOtpLoginEmail(to: string, code: string): Promise<boolean> {
+	if (!isConfigured()) {
+		console.warn("[Email] SendGrid não configurado. OTP:", code, "→", to);
+		return false;
+	}
+
+	const msg = {
+		to,
+		from: { email: fromEmail, name: fromName },
+		subject: `${code} — código de acesso`,
+		text: `Seu código de acesso ao Controle Financeiro é: ${code}. Válido por 10 minutos.`,
+		html: `
+			<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+				<h2 style="color: #059669;">Seu código</h2>
+				<p style="font-size: 32px; letter-spacing: 8px; font-weight: 700; color: #171717;">${code}</p>
+				<p style="color: #737373; font-size: 14px;">Válido por 10 minutos. Se você não solicitou, ignore este email.</p>
+			</div>
+		`,
+	};
+
+	try {
+		await sgMail.send(msg);
+		return true;
+	} catch (error: unknown) {
+		console.error("[Email] Erro ao enviar OTP:", error);
+		return false;
+	}
+}

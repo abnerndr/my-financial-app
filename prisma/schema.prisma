@@ -40,7 +40,9 @@ model User {
   name          String?
   email         String    @unique
   emailVerified DateTime?
-  password      String? // Hash da senha (null para usuários OAuth antigos)
+  phone         String? // E.164 para login OTP WhatsApp
+  phoneVerified DateTime?
+  password      String? // Hash da senha (opcional — OTP/Google)
   image         String?
   accounts      Account[]
   sessions      Session[]
@@ -53,6 +55,7 @@ model User {
   logos          Logo[]
 
   @@index([email])
+  @@index([phone])
 }
 
 model VerificationToken {

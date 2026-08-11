@@ -1,8 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getSession } from "@/lib/auth";
-import Link from "next/link";
+import { AuthOtpForm } from "@/components/auth/auth-otp-form";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { getSession, isGoogleAuthEnabled } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { LoginForm } from "./login-form";
 
 export default async function LoginPage({
 	searchParams,
@@ -15,22 +14,20 @@ export default async function LoginPage({
 	const params = await searchParams;
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-			<Card className="w-full max-w-md">
-				<CardHeader>
-					<CardTitle>Controle Financeiro</CardTitle>
-					<CardDescription>Entre com sua conta para acessar a plataforma</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<LoginForm callbackUrl={params.callbackUrl} error={params.error} verified={params.verified} />
-					<div className="mt-4 text-center text-sm text-muted-foreground">
-						Não tem uma conta?{" "}
-						<Link href="/cadastro" className="text-primary hover:underline">
-							Cadastre-se
-						</Link>
-					</div>
-				</CardContent>
-			</Card>
-		</div>
+		<AuthShell title="Login">
+			{params.verified === "true" ? (
+				<p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800">
+					Email verificado! Entre com o código OTP enviado ao seu email.
+				</p>
+			) : null}
+			{params.error ? (
+				<p className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+					{params.error === "OAuthAccountNotLinked"
+						? "Este email já está vinculado a outra forma de login."
+						: "Não foi possível entrar. Tente novamente."}
+				</p>
+			) : null}
+			<AuthOtpForm mode="login" callbackUrl={params.callbackUrl} googleEnabled={isGoogleAuthEnabled()} />
+		</AuthShell>
 	);
 }
