@@ -2,7 +2,7 @@
 
 import { LogoForm } from "@/components/logos/logo-form";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import { useMemo, useState } from "react";
@@ -86,7 +86,17 @@ export function LogoPicker({ library, value, onChange }: Props) {
 					</DialogHeader>
 
 					{creating ? (
-						<LogoForm categories={userCategories} onCreated={handleSelect} />
+						<div className="space-y-4">
+							<LogoForm categories={userCategories} onCreated={handleSelect} />
+							<DialogFooter>
+								<Button type="button" variant="ghost" onClick={() => setCreating(false)}>
+									Voltar
+								</Button>
+								<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+									Cancelar
+								</Button>
+							</DialogFooter>
+						</div>
 					) : (
 						<div className="space-y-4">
 							<Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -131,9 +141,14 @@ export function LogoPicker({ library, value, onChange }: Props) {
 								{!hasAnyLogo && <p className="text-sm text-muted-foreground">Nenhum logo cadastrado ainda.</p>}
 							</div>
 
-							<Button type="button" variant="outline" onClick={() => setCreating(true)}>
-								Adicionar novo
-							</Button>
+							<DialogFooter>
+								<Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+									Cancelar
+								</Button>
+								<Button type="button" variant="outline" onClick={() => setCreating(true)}>
+									Adicionar novo
+								</Button>
+							</DialogFooter>
 						</div>
 					)}
 				</DialogContent>
