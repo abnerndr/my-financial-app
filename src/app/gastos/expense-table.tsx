@@ -3,6 +3,7 @@
 import { deleteExpense, markExpenseAsPaid, unmarkExpenseAsPaid } from "@/app/actions/expenses";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { LogoLibrary } from "@/components/logos/logo-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency, getDueDateForMonth } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
@@ -24,6 +25,7 @@ type ExpenseWithStatus = {
 	title: string;
 	description: string | null;
 	logoUrl: string | null;
+	logoId: string | null;
 	value: number;
 	frequency: string;
 	dueDate: string | null;
@@ -37,7 +39,13 @@ function formatDueDate(date: Date | null): string {
 	return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-export function ExpenseTable({ expenses }: { expenses: ExpenseWithStatus[] }) {
+export function ExpenseTable({
+	expenses,
+	library,
+}: {
+	expenses: ExpenseWithStatus[];
+	library: LogoLibrary;
+}) {
 	const router = useRouter();
 	const [editExpense, setEditExpense] = useState<ExpenseWithStatus | null>(null);
 	const [editOpen, setEditOpen] = useState(false);
@@ -170,6 +178,7 @@ export function ExpenseTable({ expenses }: { expenses: ExpenseWithStatus[] }) {
 		</Table>
 		<ExpenseEditModal
 			expense={editExpense}
+			library={library}
 			open={editOpen}
 			onOpenChange={setEditOpen}
 		/>

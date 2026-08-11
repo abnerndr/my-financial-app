@@ -10,11 +10,26 @@ import { z } from "zod";
 const expenseSchema = z.object({
 	title: z.string().min(1, "Título é obrigatório"),
 	description: z.string().optional(),
-	logoUrl: z.string().url().optional().or(z.literal("")),
+	logoId: z.string().optional().or(z.literal("")),
 	value: z.number().positive("Valor deve ser positivo"),
 	frequency: z.enum(["ONE_TIME", "MONTHLY", "ANNUAL"]),
 	dueDate: z.string().optional(), // ISO date; opcional no servidor, obrigatório no front
 });
+
+/** Resolve logoId/logoUrl a partir da biblioteca de logos do usuário (ou logos de sistema). */
+async function resolveLogo(
+	userId: string,
+	logoId: string | undefined
+): Promise<{ logoId: string | null; logoUrl: string | null } | { error: string }> {
+	if (!logoId) return { logoId: null, logoUrl: null };
+
+	const logo = await prisma.logo.findFirst({
+		where: { id: logoId, OR: [{ userId }, { userId: null }] },
+	});
+	if (!logo) return { error: "Logo inválido" };
+
+	return { logoId: logo.id, logoUrl: logo.url };
+}
 
 export async function createExpense(formData: FormData) {
 	const session = await getSession();
@@ -23,7 +38,7 @@ export async function createExpense(formData: FormData) {
 	const parsed = expenseSchema.safeParse({
 		title: formData.get("title"),
 		description: formData.get("description") || undefined,
-		logoUrl: formData.get("logoUrl") || undefined,
+		logoId: formData.get("logoId") || undefined,
 		value: Number(formData.get("value")),
 		frequency: formData.get("frequency") as ExpenseFrequency,
 		dueDate: formData.get("dueDate") || undefined,
@@ -33,6 +48,9 @@ export async function createExpense(formData: FormData) {
 		return { error: parsed.error.flatten().fieldErrors as Record<string, string[] | undefined> };
 	}
 
+	const logo = await resolveLogo(session.user.id, parsed.data.logoId);
+	if ("error" in logo) return { error: logo.error };
+
 	const dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
 
 	await prisma.expense.create({
@@ -40,7 +58,8 @@ export async function createExpense(formData: FormData) {
 			userId: session.user.id,
 			title: parsed.data.title,
 			description: parsed.data.description || null,
-			logoUrl: parsed.data.logoUrl || null,
+			logoId: logo.logoId,
+			logoUrl: logo.logoUrl,
 			value: parsed.data.value,
 			frequency: parsed.data.frequency,
 			dueDate,
@@ -61,7 +80,7 @@ export async function updateExpense(id: string, formData: FormData) {
 	const parsed = expenseSchema.safeParse({
 		title: formData.get("title"),
 		description: formData.get("description") || undefined,
-		logoUrl: formData.get("logoUrl") || undefined,
+		logoId: formData.get("logoId") || undefined,
 		value: Number(formData.get("value")),
 		frequency: formData.get("frequency") as ExpenseFrequency,
 		dueDate: formData.get("dueDate") || undefined,
@@ -71,6 +90,9 @@ export async function updateExpense(id: string, formData: FormData) {
 		return { error: parsed.error.flatten().fieldErrors as Record<string, string[] | undefined> };
 	}
 
+	const logo = await resolveLogo(session.user.id, parsed.data.logoId);
+	if ("error" in logo) return { error: logo.error };
+
 	const dueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
 
 	await prisma.expense.updateMany({
@@ -78,7 +100,8 @@ export async function updateExpense(id: string, formData: FormData) {
 		data: {
 			title: parsed.data.title,
 			description: parsed.data.description || null,
-			logoUrl: parsed.data.logoUrl || null,
+			logoId: logo.logoId,
+			logoUrl: logo.logoUrl,
 			value: parsed.data.value,
 			frequency: parsed.data.frequency,
 			dueDate,

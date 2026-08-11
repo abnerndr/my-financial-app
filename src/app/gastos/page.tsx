@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getSession } from "@/lib/auth";
-import { getExpensesWithPaymentStatus, getPaymentsHistory } from "@/lib/data";
+import { getExpensesWithPaymentStatus, getLogoLibrary, getPaymentsHistory } from "@/lib/data";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -29,9 +29,10 @@ export default async function GastosPage() {
 	const session = await getSession();
 	if (!session) redirect("/");
 
-	const [expenses, paymentsHistory] = await Promise.all([
+	const [expenses, paymentsHistory, library] = await Promise.all([
 		getExpensesWithPaymentStatus(),
 		getPaymentsHistory(),
+		getLogoLibrary(),
 	]);
 
 	const monthName = new Date().toLocaleString("pt-BR", { month: "long" });
@@ -91,7 +92,7 @@ export default async function GastosPage() {
 					<CardTitle>Novo gasto</CardTitle>
 				</CardHeader>
 				<CardContent>
-					<ExpenseForm />
+					<ExpenseForm library={library} />
 				</CardContent>
 			</Card>
 
@@ -101,7 +102,7 @@ export default async function GastosPage() {
 					<p className="text-sm text-muted-foreground">{expenses.length} registro(s)</p>
 				</CardHeader>
 				<CardContent>
-					<ExpenseTable expenses={expenses} />
+					<ExpenseTable expenses={expenses} library={library} />
 				</CardContent>
 			</Card>
 

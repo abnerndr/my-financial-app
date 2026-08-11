@@ -1,6 +1,7 @@
 "use client";
 
 import { createExpense } from "@/app/actions/expenses";
+import { LogoPicker, type LogoLibrary } from "@/components/logos/logo-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,8 @@ import { z } from "zod";
 const schema = z.object({
 	title: z.string().min(1, "Título é obrigatório"),
 	description: z.string().optional(),
-	logoUrl: z.string().url("URL inválida").optional().or(z.literal("")),
+	logoId: z.string().nullable().optional(),
+	logoUrl: z.string().nullable().optional(),
 	value: z.number().positive("Valor deve ser positivo"),
 	frequency: z.enum(["ONE_TIME", "MONTHLY", "ANNUAL"]),
 	dueDate: z.string().min(1, "Data de vencimento é obrigatória"),
@@ -23,14 +25,15 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export function ExpenseForm() {
+export function ExpenseForm({ library }: { library: LogoLibrary }) {
 	const router = useRouter();
 	const form = useForm<FormData>({
 		resolver: zodResolver(schema),
 		defaultValues: {
 			title: "",
 			description: "",
-			logoUrl: "",
+			logoId: null,
+			logoUrl: null,
 			value: 0,
 			frequency: "MONTHLY",
 			dueDate: new Date().toISOString().slice(0, 10),
@@ -42,7 +45,7 @@ export function ExpenseForm() {
 			const fd = new FormData();
 			fd.set("title", data.title);
 			fd.set("description", data.description ?? "");
-			fd.set("logoUrl", data.logoUrl ?? "");
+			fd.set("logoId", data.logoId ?? "");
 			fd.set("value", String(data.value));
 			fd.set("frequency", data.frequency);
 			fd.set("dueDate", data.dueDate);
@@ -70,11 +73,15 @@ export function ExpenseForm() {
 				<Textarea id="description" {...form.register("description")} placeholder="Opcional" />
 			</div>
 			<div className="space-y-2 sm:col-span-2">
-				<Label htmlFor="logoUrl">URL do logo (opcional)</Label>
-				<Input id="logoUrl" type="url" {...form.register("logoUrl")} placeholder="https://..." />
-				{form.formState.errors.logoUrl && (
-					<p className="text-sm text-destructive">{form.formState.errors.logoUrl.message}</p>
-				)}
+				<Label>Logo (opcional)</Label>
+				<LogoPicker
+					library={library}
+					value={{ logoId: form.watch("logoId") ?? null, logoUrl: form.watch("logoUrl") ?? null }}
+					onChange={(next) => {
+						form.setValue("logoId", next.logoId);
+						form.setValue("logoUrl", next.logoUrl);
+					}}
+				/>
 			</div>
 			<div className="space-y-2">
 				<Label htmlFor="value">Valor (R$)</Label>

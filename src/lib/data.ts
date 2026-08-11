@@ -133,6 +133,7 @@ export async function getExpensesWithPaymentStatus(year?: number, month?: number
 		title: e.title,
 		description: e.description,
 		logoUrl: e.logoUrl,
+		logoId: e.logoId ?? null,
 		value: Number(e.value),
 		frequency: e.frequency,
 		dueDate: (e as { dueDate?: Date | null }).dueDate?.toISOString() ?? null,
