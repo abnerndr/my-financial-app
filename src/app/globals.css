@@ -133,6 +133,32 @@
   }
 }
 
+/* Mobile-only: touch targets, scroll e teclado — desktop (md+) inalterado */
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Evita zoom automático do iOS em inputs < 16px (Input já usa text-base no mobile) */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .mobile-scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

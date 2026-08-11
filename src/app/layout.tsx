@@ -1,5 +1,5 @@
 import { Providers } from "@/components/providers";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -16,6 +16,22 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
 	title: "Controle Financeiro",
 	description: "Monitore gastos, renda e alertas de limite",
+	applicationName: "Controle Financeiro",
+	appleWebApp: {
+		capable: true,
+		statusBarStyle: "default",
+		title: "Financeiro",
+	},
+	formatDetection: {
+		telephone: false,
+	},
+};
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	viewportFit: "cover",
+	themeColor: "#059669",
 };
 
 export default function RootLayout({
@@ -25,7 +41,9 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="pt-BR">
-			<body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+			<body
+				className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased pb-[env(safe-area-inset-bottom)]`}
+			>
 				<Providers>{children}</Providers>
 			</body>
 		</html>
