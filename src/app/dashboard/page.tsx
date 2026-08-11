@@ -48,44 +48,44 @@ export default async function DashboardPage() {
 	} = data;
 
 	return (
-		<div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8 py-8">
+		<div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6 py-6 md:space-y-8 md:py-8">
 			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<h1 className="text-3xl font-bold">Dashboard</h1>
-					<p className="text-muted-foreground mt-1">Visão geral da sua situação financeira</p>
+					<h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
+					<p className="text-muted-foreground mt-1 text-sm md:text-base">Visão geral da sua situação financeira</p>
 				</div>
-				<div className="flex flex-wrap gap-2">
-					<Button asChild size="sm" variant="outline">
+				<div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2">
+					<Button asChild size="sm" variant="outline" className="justify-start md:justify-center">
 						<Link href="/gastos">
 							<Plus className="mr-1 size-4" /> Gastos
 						</Link>
 					</Button>
-					<Button asChild size="sm" variant="outline">
+					<Button asChild size="sm" variant="outline" className="justify-start md:justify-center">
 						<Link href="/renda">
 							<Plus className="mr-1 size-4" /> Renda
 						</Link>
 					</Button>
-					<Button asChild size="sm" variant="outline">
+					<Button asChild size="sm" variant="outline" className="justify-start md:justify-center">
 						<Link href="/alertas">
 							<Bell className="mr-1 size-4" /> Alertas
 						</Link>
 					</Button>
-					<Button asChild size="sm" variant="outline">
+					<Button asChild size="sm" variant="outline" className="justify-start md:justify-center">
 						<Link href="/relatorios">
 							<BarChart3 className="mr-1 size-4" /> Relatórios
 						</Link>
 					</Button>
-					<Button asChild size="sm" variant="outline">
+					<Button asChild size="sm" variant="outline" className="justify-start md:justify-center">
 						<Link href="/logos">
 							<ImageIcon className="mr-1 size-4" /> Logos
 						</Link>
 					</Button>
-					<Button asChild size="sm" variant="ghost">
+					<Button asChild size="sm" variant="ghost" className="justify-start md:justify-center">
 						<Link href="/configuracoes">
 							<Settings className="mr-1 size-4" /> Configurações
 						</Link>
 					</Button>
-					<Button asChild size="sm" variant="ghost">
+					<Button asChild size="sm" variant="ghost" className="col-span-2 justify-start md:col-span-1 md:justify-center">
 						<Link href="/api/auth/signout">
 							<LogOut className="mr-1 size-4" /> Sair
 						</Link>

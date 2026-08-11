@@ -90,7 +90,16 @@ export function LoginForm({
 
 			<div className="space-y-2">
 				<Label htmlFor="email">Email</Label>
-				<Input id="email" type="email" {...form.register("email")} placeholder="seu@email.com" disabled={isLoading} />
+				<Input
+					id="email"
+					type="email"
+					inputMode="email"
+					autoComplete="email"
+					enterKeyHint="next"
+					{...form.register("email")}
+					placeholder="seu@email.com"
+					disabled={isLoading}
+				/>
 				{form.formState.errors.email && (
 					<p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
 				)}
@@ -101,6 +110,8 @@ export function LoginForm({
 				<Input
 					id="password"
 					type="password"
+					autoComplete="current-password"
+					enterKeyHint="done"
 					{...form.register("password")}
 					placeholder="Sua senha"
 					disabled={isLoading}

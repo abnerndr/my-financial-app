@@ -110,6 +110,9 @@ export function WhatsappIntegrationForm({ defaultPhone, defaultPhoneVerified, de
 					<Input
 						id="phone"
 						type="tel"
+						inputMode="tel"
+						autoComplete="tel"
+						enterKeyHint="done"
 						placeholder="+5511999999999"
 						value={phone}
 						onChange={(e) => setPhone(e.target.value)}

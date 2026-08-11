@@ -88,6 +88,9 @@ export function ExpenseForm({ library }: { library: LogoLibrary }) {
 				<Input
 					id="value"
 					type="number"
+					inputMode="decimal"
+					enterKeyHint="next"
+					autoComplete="off"
 					step="0.01"
 					{...form.register("value", { valueAsNumber: true })}
 					placeholder="0,00"
@@ -117,6 +120,7 @@ export function ExpenseForm({ library }: { library: LogoLibrary }) {
 				<Input
 					id="dueDate"
 					type="date"
+					enterKeyHint="done"
 					{...form.register("dueDate")}
 				/>
 				{form.formState.errors.dueDate && (
@@ -127,7 +131,7 @@ export function ExpenseForm({ library }: { library: LogoLibrary }) {
 				</p>
 			</div>
 			<div className="sm:col-span-2">
-				<Button type="submit" disabled={mutation.isPending}>
+				<Button type="submit" disabled={mutation.isPending} className="w-full md:w-auto">
 					{mutation.isPending ? "Salvando..." : "Adicionar gasto"}
 				</Button>
 			</div>

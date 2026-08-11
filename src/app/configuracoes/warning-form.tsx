@@ -43,6 +43,9 @@ export function WarningForm({ defaultPercent }: { defaultPercent: number }) {
 				<Input
 					id="warningLimitPercent"
 					type="number"
+					inputMode="numeric"
+					enterKeyHint="done"
+					autoComplete="off"
 					min={1}
 					max={99}
 					{...form.register("warningLimitPercent", { valueAsNumber: true })}

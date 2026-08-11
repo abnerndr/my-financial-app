@@ -139,6 +139,9 @@ export function ExpenseEditModal({
 						<Input
 							id="edit-value"
 							type="number"
+							inputMode="decimal"
+							enterKeyHint="next"
+							autoComplete="off"
 							step="0.01"
 							{...form.register("value", { valueAsNumber: true })}
 							placeholder="0,00"

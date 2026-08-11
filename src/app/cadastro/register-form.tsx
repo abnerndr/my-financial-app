@@ -85,6 +85,9 @@ export function RegisterForm() {
 				<Input
 					id="email"
 					type="email"
+					inputMode="email"
+					autoComplete="email"
+					enterKeyHint="next"
 					{...form.register("email")}
 					placeholder="seu@email.com"
 					disabled={mutation.isPending}
@@ -100,6 +103,8 @@ export function RegisterForm() {
 				<Input
 					id="password"
 					type="password"
+					autoComplete="new-password"
+					enterKeyHint="done"
 					{...form.register("password")}
 					placeholder="Mínimo 6 caracteres"
 					disabled={mutation.isPending}

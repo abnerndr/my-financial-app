@@ -3,8 +3,8 @@ import * as React from "react";
 
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
 	({ className, ...props }, ref) => (
-		<div className="relative w-full overflow-auto">
-			<table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+		<div className="relative w-full overflow-auto mobile-scroll-x -mx-1 px-1 md:mx-0 md:px-0">
+			<table ref={ref} className={cn("w-full caption-bottom text-sm min-w-[36rem] md:min-w-0", className)} {...props} />
 		</div>
 	)
 );

@@ -81,6 +81,9 @@ export function IncomeForm() {
 				<Input
 					id="value"
 					type="number"
+					inputMode="decimal"
+					enterKeyHint="done"
+					autoComplete="off"
 					step="0.01"
 					{...form.register("value", { valueAsNumber: true })}
 					placeholder="0,00"
@@ -90,7 +93,7 @@ export function IncomeForm() {
 				)}
 			</div>
 			<div className="flex items-end sm:col-span-2">
-				<Button type="submit" disabled={mutation.isPending}>
+				<Button type="submit" disabled={mutation.isPending} className="w-full md:w-auto">
 					{mutation.isPending ? "Salvando..." : "Adicionar"}
 				</Button>
 			</div>
