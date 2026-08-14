@@ -5,12 +5,10 @@
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-# Enable corepack and set yarn version to 1.22.22
 cmds = [
   "corepack enable",
   "corepack prepare yarn@1.22.22 --activate",
-  "yarn --version",
-  "yarn install --frozen-lockfile"
+  "yarn install --frozen-lockfile --network-timeout 600000"
 ]
 
 [phases.build]
