@@ -53,6 +53,43 @@ const createLogoSchema = z.object({
 	r2Key: z.string().optional(),
 });
 
+const updateLogoSchema = z.object({
+	id: z.string().min(1),
+	name: z.string().trim().min(1, "Nome é obrigatório").max(60, "Nome muito longo"),
+	categoryId: z.string().min(1, "Categoria é obrigatória"),
+	source: z.enum(["UPLOAD", "URL"]).optional(),
+	url: z.string().url("URL inválida").optional(),
+	r2Key: z.string().optional(),
+});
+
+function validateUploadPayload(userId: string, url: string, r2Key: string | undefined): string | null {
+	if (!r2Key) return "Upload incompleto (r2Key ausente)";
+
+	const expectedPrefix = `logos/${userId}/`;
+	if (!r2Key.startsWith(expectedPrefix)) {
+		return "r2Key inválido para este usuário";
+	}
+
+	const publicBase = process.env.R2_PUBLIC_URL?.trim().replace(/\/$/, "");
+	if (publicBase && url !== `${publicBase}/${r2Key}`) {
+		return "URL não corresponde ao arquivo enviado";
+	}
+
+	return null;
+}
+
+async function assertOwnedCategory(userId: string, categoryId: string): Promise<string | null> {
+	const category = await prisma.logoCategory.findUnique({
+		where: { id: categoryId },
+		select: { userId: true },
+	});
+
+	if (!category) return "Categoria não encontrada";
+	if (category.userId === null) return "Não é possível adicionar logos a categorias do sistema";
+	if (category.userId !== userId) return "Não autorizado";
+	return null;
+}
+
 export async function createLogo(input: {
 	name: string;
 	categoryId: string;
@@ -69,33 +106,12 @@ export async function createLogo(input: {
 	}
 
 	if (parsed.data.source === "UPLOAD") {
-		if (!parsed.data.r2Key) {
-			return { error: "Upload incompleto (r2Key ausente)" };
-		}
-
-		const expectedPrefix = `logos/${session.user.id}/`;
-		if (!parsed.data.r2Key.startsWith(expectedPrefix)) {
-			return { error: "r2Key inválido para este usuário" };
-		}
-
-		const publicBase = process.env.R2_PUBLIC_URL?.trim().replace(/\/$/, "");
-		if (publicBase && parsed.data.url !== `${publicBase}/${parsed.data.r2Key}`) {
-			return { error: "URL não corresponde ao arquivo enviado" };
-		}
+		const uploadError = validateUploadPayload(session.user.id, parsed.data.url, parsed.data.r2Key);
+		if (uploadError) return { error: uploadError };
 	}
 
-	const category = await prisma.logoCategory.findUnique({
-		where: { id: parsed.data.categoryId },
-		select: { userId: true },
-	});
-
-	if (!category) return { error: "Categoria não encontrada" };
-	if (category.userId === null) {
-		return { error: "Não é possível adicionar logos a categorias do sistema" };
-	}
-	if (category.userId !== session.user.id) {
-		return { error: "Não autorizado" };
-	}
+	const categoryError = await assertOwnedCategory(session.user.id, parsed.data.categoryId);
+	if (categoryError) return { error: categoryError };
 
 	try {
 		const logo = await prisma.logo.create({
@@ -116,6 +132,100 @@ export async function createLogo(input: {
 		}
 		console.error("[logos] erro ao criar logo", e);
 		return { error: "Erro ao criar logo" };
+	}
+}
+
+export async function updateLogo(input: {
+	id: string;
+	name: string;
+	categoryId: string;
+	source?: LogoSource;
+	url?: string;
+	r2Key?: string;
+}) {
+	const session = await getSession();
+	if (!session?.user?.id) return { error: "Não autorizado" };
+
+	const parsed = updateLogoSchema.safeParse(input);
+	if (!parsed.success) {
+		return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
+	}
+
+	const replacingImage = parsed.data.source !== undefined || parsed.data.url !== undefined;
+	if (replacingImage) {
+		if (!parsed.data.source || !parsed.data.url) {
+			return { error: "Informe origem e URL da nova imagem" };
+		}
+		if (parsed.data.source === "UPLOAD") {
+			const uploadError = validateUploadPayload(session.user.id, parsed.data.url, parsed.data.r2Key);
+			if (uploadError) return { error: uploadError };
+		}
+	}
+
+	const logo = await prisma.logo.findFirst({
+		where: { id: parsed.data.id, userId: session.user.id },
+	});
+	if (!logo) return { error: "Logo não encontrado" };
+
+	const categoryError = await assertOwnedCategory(session.user.id, parsed.data.categoryId);
+	if (categoryError) return { error: categoryError };
+
+	const nextSource = replacingImage ? parsed.data.source! : logo.source;
+	const nextUrl = replacingImage ? parsed.data.url! : logo.url;
+	const nextR2Key =
+		nextSource === "UPLOAD"
+			? replacingImage
+				? parsed.data.r2Key ?? null
+				: logo.r2Key
+			: null;
+
+	const urlChanged = nextUrl !== logo.url;
+
+	try {
+		const updated = await prisma.$transaction(async (tx) => {
+			const nextLogo = await tx.logo.update({
+				where: { id: logo.id },
+				data: {
+					name: parsed.data.name,
+					categoryId: parsed.data.categoryId,
+					source: nextSource,
+					url: nextUrl,
+					r2Key: nextR2Key,
+				},
+			});
+
+			if (urlChanged) {
+				await tx.expense.updateMany({
+					where: { logoId: logo.id, userId: session.user.id },
+					data: { logoUrl: nextUrl },
+				});
+			}
+
+			return nextLogo;
+		});
+
+		const expectedPrefix = `logos/${session.user.id}/`;
+		const oldR2Key = logo.r2Key;
+		if (
+			oldR2Key &&
+			oldR2Key.startsWith(expectedPrefix) &&
+			oldR2Key !== nextR2Key
+		) {
+			try {
+				await deleteLogoFromR2(oldR2Key);
+			} catch (e) {
+				console.error("[logos] erro ao remover arquivo antigo do R2", e);
+			}
+		}
+
+		revalidateLogoPaths();
+		return { success: true as const, logo: updated };
+	} catch (e) {
+		if (isUniqueConstraintError(e)) {
+			return { error: "Você já possui um logo com esse nome nessa categoria" };
+		}
+		console.error("[logos] erro ao atualizar logo", e);
+		return { error: "Erro ao atualizar logo" };
 	}
 }
 

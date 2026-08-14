@@ -1,11 +1,12 @@
 "use client";
 
 import { deleteLogo, deleteLogoCategory } from "@/app/actions/logos";
-import { LogoForm } from "@/components/logos/logo-form";
+import { LogoForm, type EditableLogo } from "@/components/logos/logo-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Pencil, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -35,6 +36,7 @@ export function LogosManager({ library }: Props) {
 	const [deletingLogoId, setDeletingLogoId] = useState<string | null>(null);
 	const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
 	const [categoryError, setCategoryError] = useState<{ id: string; message: string } | null>(null);
+	const [editingLogo, setEditingLogo] = useState<EditableLogo | null>(null);
 
 	const formCategories = useMemo(
 		() => library.map(({ id, name, isSystem }) => ({ id, name, isSystem })),
@@ -127,17 +129,37 @@ export function LogosManager({ library }: Props) {
 												{logo.isSystem ? (
 													<Badge variant="secondary">Sistema</Badge>
 												) : (
-													<Button
-														variant="ghost"
-														size="sm"
-														className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-														onClick={() => handleDeleteLogo(logo.id)}
-														disabled={deletingLogoId === logo.id}
-														aria-label="Excluir logo"
-													>
-														<Trash2 className="size-3 shrink-0" />
-														Excluir
-													</Button>
+													<div className="flex w-full flex-wrap items-center justify-center gap-1">
+														<Button
+															variant="ghost"
+															size="sm"
+															className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+															onClick={() =>
+																setEditingLogo({
+																	id: logo.id,
+																	name: logo.name,
+																	url: logo.url,
+																	source: logo.source,
+																	categoryId: category.id,
+																})
+															}
+															aria-label="Editar logo"
+														>
+															<Pencil className="size-3 shrink-0" />
+															Editar
+														</Button>
+														<Button
+															variant="ghost"
+															size="sm"
+															className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+															onClick={() => handleDeleteLogo(logo.id)}
+															disabled={deletingLogoId === logo.id}
+															aria-label="Excluir logo"
+														>
+															<Trash2 className="size-3 shrink-0" />
+															Excluir
+														</Button>
+													</div>
 												)}
 											</div>
 										))}
@@ -148,6 +170,26 @@ export function LogosManager({ library }: Props) {
 					))}
 				</div>
 			)}
+
+			<Dialog open={Boolean(editingLogo)} onOpenChange={(open) => !open && setEditingLogo(null)}>
+				<DialogContent className="sm:max-w-[500px]">
+					<DialogHeader>
+						<DialogTitle>Editar logo</DialogTitle>
+					</DialogHeader>
+					{editingLogo && (
+						<LogoForm
+							key={editingLogo.id}
+							categories={formCategories}
+							defaultCategoryId={editingLogo.categoryId}
+							initialLogo={editingLogo}
+							onUpdated={() => {
+								setEditingLogo(null);
+								router.refresh();
+							}}
+						/>
+					)}
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

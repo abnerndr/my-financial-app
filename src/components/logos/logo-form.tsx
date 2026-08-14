@@ -1,6 +1,6 @@
 "use client";
 
-import { createLogo, createLogoCategory } from "@/app/actions/logos";
+import { createLogo, createLogoCategory, updateLogo } from "@/app/actions/logos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,33 +11,46 @@ import { useMemo, useRef, useState } from "react";
 
 type Category = { id: string; name: string; isSystem: boolean };
 
-type CreatedLogo = { id: string; name: string; url: string };
+type SavedLogo = { id: string; name: string; url: string };
+
+export type EditableLogo = {
+	id: string;
+	name: string;
+	url: string;
+	source: string;
+	categoryId: string;
+};
 
 type Props = {
 	categories: Category[];
-	onCreated?: (logo: CreatedLogo) => void;
+	onCreated?: (logo: SavedLogo) => void;
+	onUpdated?: (logo: SavedLogo) => void;
 	defaultCategoryId?: string;
+	initialLogo?: EditableLogo;
 };
 
 type Mode = "URL" | "UPLOAD";
 
 const ACCEPTED_MIME = "image/png,image/jpeg,image/webp,image/svg+xml";
 
-export function LogoForm({ categories, onCreated, defaultCategoryId }: Props) {
+export function LogoForm({ categories, onCreated, onUpdated, defaultCategoryId, initialLogo }: Props) {
 	const router = useRouter();
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const isEdit = Boolean(initialLogo);
 
 	const [localCategories, setLocalCategories] = useState<Category[]>(categories);
 	const userCategories = useMemo(() => localCategories.filter((c) => !c.isSystem), [localCategories]);
 
-	const [categoryId, setCategoryId] = useState<string>(defaultCategoryId ?? userCategories[0]?.id ?? "");
+	const [categoryId, setCategoryId] = useState<string>(
+		defaultCategoryId ?? initialLogo?.categoryId ?? userCategories[0]?.id ?? ""
+	);
 	const [newCategoryName, setNewCategoryName] = useState("");
 	const [creatingCategory, setCreatingCategory] = useState(false);
 	const [categoryError, setCategoryError] = useState<string | null>(null);
 
-	const [name, setName] = useState("");
-	const [mode, setMode] = useState<Mode>("URL");
-	const [url, setUrl] = useState("");
+	const [name, setName] = useState(initialLogo?.name ?? "");
+	const [mode, setMode] = useState<Mode>(initialLogo?.source === "UPLOAD" ? "UPLOAD" : "URL");
+	const [url, setUrl] = useState(initialLogo?.source === "UPLOAD" ? "" : (initialLogo?.url ?? ""));
 	const [uploaded, setUploaded] = useState<{ url: string; r2Key: string } | null>(null);
 	const [uploading, setUploading] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
@@ -45,7 +58,10 @@ export function LogoForm({ categories, onCreated, defaultCategoryId }: Props) {
 	const [submitting, setSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState<string | null>(null);
 
-	const previewUrl = mode === "UPLOAD" ? uploaded?.url ?? null : url.trim() || null;
+	const previewUrl =
+		mode === "UPLOAD"
+			? uploaded?.url ?? (initialLogo?.source === "UPLOAD" ? initialLogo.url : null)
+			: url.trim() || null;
 
 	function resetForm() {
 		setName("");
@@ -117,29 +133,72 @@ export function LogoForm({ categories, onCreated, defaultCategoryId }: Props) {
 			return;
 		}
 
-		const finalUrl = mode === "UPLOAD" ? uploaded?.url : url.trim();
-		if (!finalUrl) {
-			setSubmitError(mode === "UPLOAD" ? "Envie um arquivo" : "Informe a URL do logo");
+		let image:
+			| { source: Mode; url: string; r2Key?: string }
+			| "keep"
+			| { error: string };
+
+		if (mode === "UPLOAD") {
+			if (uploaded) {
+				image = { source: "UPLOAD", url: uploaded.url, r2Key: uploaded.r2Key };
+			} else if (isEdit && initialLogo?.source === "UPLOAD") {
+				image = "keep";
+			} else {
+				image = { error: "Envie um arquivo" };
+			}
+		} else {
+			const trimmedUrl = url.trim();
+			if (!trimmedUrl) {
+				image = { error: "Informe a URL do logo" };
+			} else if (isEdit && initialLogo?.source === "URL" && trimmedUrl === initialLogo.url) {
+				image = "keep";
+			} else {
+				image = { source: "URL", url: trimmedUrl };
+			}
+		}
+
+		if (typeof image === "object" && "error" in image) {
+			setSubmitError(image.error);
 			return;
 		}
 
 		setSubmitting(true);
-		const result = await createLogo({
-			name: name.trim(),
-			categoryId,
-			source: mode,
-			url: finalUrl,
-			r2Key: mode === "UPLOAD" ? uploaded?.r2Key : undefined,
-		});
+		let result: { error?: string; logo?: { id: string; name: string; url: string } };
+
+		if (isEdit && initialLogo) {
+			result = await updateLogo({
+				id: initialLogo.id,
+				name: name.trim(),
+				categoryId,
+				...(image === "keep" ? {} : image),
+			});
+		} else if (image === "keep") {
+			setSubmitting(false);
+			setSubmitError("Envie um arquivo ou informe a URL do logo");
+			return;
+		} else {
+			result = await createLogo({
+				name: name.trim(),
+				categoryId,
+				source: image.source,
+				url: image.url,
+				r2Key: image.r2Key,
+			});
+		}
 		setSubmitting(false);
 
 		if (result.error || !result.logo) {
-			setSubmitError(result.error ?? "Erro ao criar logo");
+			setSubmitError(result.error ?? (isEdit ? "Erro ao atualizar logo" : "Erro ao criar logo"));
 			return;
 		}
 
-		onCreated?.({ id: result.logo.id, name: result.logo.name, url: result.logo.url });
-		resetForm();
+		const saved = { id: result.logo.id, name: result.logo.name, url: result.logo.url };
+		if (isEdit) {
+			onUpdated?.(saved);
+		} else {
+			onCreated?.(saved);
+			resetForm();
+		}
 		router.refresh();
 	}
 
@@ -221,6 +280,9 @@ export function LogoForm({ categories, onCreated, defaultCategoryId }: Props) {
 							disabled={uploading}
 							className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground"
 						/>
+						{isEdit && initialLogo?.source === "UPLOAD" && !uploaded && (
+							<p className="text-sm text-muted-foreground">Envie um arquivo só se quiser trocar a imagem atual.</p>
+						)}
 						{uploading && <p className="text-sm text-muted-foreground">Enviando...</p>}
 						{uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
 					</div>
@@ -239,7 +301,7 @@ export function LogoForm({ categories, onCreated, defaultCategoryId }: Props) {
 			{submitError && <p className="text-sm text-destructive">{submitError}</p>}
 
 			<Button type="submit" disabled={submitting || uploading}>
-				{submitting ? "Salvando..." : "Adicionar logo"}
+				{submitting ? "Salvando..." : isEdit ? "Salvar alterações" : "Adicionar logo"}
 			</Button>
 		</form>
 	);
