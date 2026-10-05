@@ -1,14 +1,23 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getSession } from "@/lib/auth";
 import { getExpensesWithPaymentStatus, getLogoLibrary, getPaymentsHistory } from "@/lib/data";
+import { groupPaymentsByReferenceMonth } from "@/lib/expense-visibility";
+import { getMonthRangeInTimeZone } from "@/lib/month";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseTable } from "./expense-table";
+
+const frequencyLabel: Record<string, string> = {
+	ONE_TIME: "Uma vez",
+	MONTHLY: "Mensal",
+	ANNUAL: "Anual",
+};
 
 function totalExpensesThisMonth(
 	expenses: { value: number; frequency: string }[]
@@ -35,8 +44,15 @@ export default async function GastosPage() {
 		getLogoLibrary(),
 	]);
 
+	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone();
+	const paymentsThisMonth = paymentsHistory.filter((p) => {
+		const ref = new Date(p.referenceMonth);
+		return ref >= startOfMonth && ref < endOfMonth;
+	});
+	const historyByMonth = groupPaymentsByReferenceMonth(paymentsHistory);
+
 	const monthName = new Date().toLocaleString("pt-BR", { month: "long" });
-	const totalPaid = paymentsHistory.reduce((acc, p) => acc + p.expenseValue, 0);
+	const totalPaid = paymentsThisMonth.reduce((acc, p) => acc + p.expenseValue, 0);
 	const totalExpenses = totalExpensesThisMonth(expenses);
 
 	return (
@@ -99,7 +115,9 @@ export default async function GastosPage() {
 			<Card>
 				<CardHeader>
 					<CardTitle>Lista de gastos</CardTitle>
-					<p className="text-sm text-muted-foreground">{expenses.length} registro(s)</p>
+					<p className="text-sm text-muted-foreground">
+						{expenses.length} ativo(s) · mensais e anuais permanecem; únicos vão para o histórico após o pagamento
+					</p>
 				</CardHeader>
 				<CardContent>
 					<ExpenseTable expenses={expenses} library={library} />
@@ -108,29 +126,46 @@ export default async function GastosPage() {
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Pagamentos concluídos neste mês</CardTitle>
+					<CardTitle>Histórico de pagamentos</CardTitle>
 					<p className="text-sm text-muted-foreground">
-						Histórico do que já foi pago em {monthName}
+						Pagamentos concluídos por mês · inclui {monthName} e meses anteriores
 					</p>
 				</CardHeader>
 				<CardContent>
-					{paymentsHistory.length === 0 ? (
-						<p className="py-4 text-center text-muted-foreground">Nenhum pagamento registrado neste mês.</p>
+					{historyByMonth.length === 0 ? (
+						<p className="py-4 text-center text-muted-foreground">Nenhum pagamento registrado ainda.</p>
 					) : (
-						<ul className="space-y-2">
-							{paymentsHistory.map((p) => (
-								<li
-									key={p.id}
-									className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-								>
-									<span className="font-medium">{p.expenseTitle}</span>
-									<span className="text-muted-foreground">
-										{formatCurrency(p.expenseValue)} · pago em{" "}
-										{new Date(p.paidAt).toLocaleDateString("pt-BR")}
-									</span>
-								</li>
+						<div className="space-y-6">
+							{historyByMonth.map((group) => (
+								<section key={group.key} className="space-y-2">
+									<h3 className="text-sm font-semibold capitalize text-foreground">
+										{group.label}
+										<span className="ml-2 font-normal text-muted-foreground">
+											({group.payments.length})
+										</span>
+									</h3>
+									<ul className="space-y-2">
+										{group.payments.map((p) => (
+											<li
+												key={p.id}
+												className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+											>
+												<div className="flex min-w-0 items-center gap-2">
+													<span className="truncate font-medium">{p.expenseTitle}</span>
+													<Badge variant="secondary">
+														{frequencyLabel[p.expenseFrequency] ?? p.expenseFrequency}
+													</Badge>
+												</div>
+												<span className="text-muted-foreground">
+													{formatCurrency(p.expenseValue)} · pago em{" "}
+													{new Date(p.paidAt).toLocaleDateString("pt-BR")}
+												</span>
+											</li>
+										))}
+									</ul>
+								</section>
 							))}
-						</ul>
+						</div>
 					)}
 				</CardContent>
 			</Card>

@@ -8,6 +8,7 @@ import {
 	usagePercent,
 } from "@/lib/calculations";
 import { formatDateOnly } from "@/lib/date-only";
+import { isActiveExpense } from "@/lib/expense-visibility";
 import { sendWhatsAppText } from "@/lib/evolution-api";
 import { formatCurrency } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
@@ -19,27 +20,36 @@ export async function getDashboardData() {
 
 	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone();
 
-	const [expenses, incomes, settings, paymentsThisMonth] = await Promise.all([
+	const [allExpenses, incomes, settings, paymentsThisMonth, paidOneTimeIds] = await Promise.all([
 		prisma.expense.findMany({ where: { userId: session.user.id } }),
 		prisma.income.findMany({ where: { userId: session.user.id } }),
 		prisma.userSettings.findUnique({
 			where: { userId: session.user.id },
 		}),
-		(prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ expense: { value: unknown } }>> } }).expensePayment.findMany({
+		prisma.expensePayment.findMany({
 			where: {
 				expense: { userId: session.user.id },
 				referenceMonth: { gte: startOfMonth, lt: endOfMonth },
 			},
 			include: { expense: { select: { value: true } } },
 		}),
+		prisma.expensePayment
+			.findMany({
+				where: { expense: { userId: session.user.id, frequency: "ONE_TIME" } },
+				select: { expenseId: true },
+			})
+			.then((list) => new Set(list.map((p) => p.expenseId))),
 	]);
+
+	// Únicos já pagos saem do cálculo do mês (ficam só no histórico).
+	const expenses = allExpenses.filter((e) => isActiveExpense(e.frequency, paidOneTimeIds.has(e.id)));
 
 	const warningPercent = settings?.warningLimitPercent ?? 0;
 	const monthlyIncome = totalMonthlyIncome(incomes);
 	const saved = totalSaved(incomes);
 	const monthlyExpenses = totalMonthlyExpenses(expenses);
 	const totalPaidThisMonth = paymentsThisMonth.reduce(
-		(acc: number, p: (typeof paymentsThisMonth)[number]) => acc + Number(p.expense.value),
+		(acc, p) => acc + Number(p.expense.value),
 		0
 	);
 	const balance = remainingBalance(incomes, expenses);
@@ -108,58 +118,79 @@ export async function getExpenses() {
 	});
 }
 
-/** Retorna gastos com flag indicando se foram pagos no mês/ano informado. */
+/** Retorna gastos ativos do mês: mensais/anuais + únicos ainda não pagos. */
 export async function getExpensesWithPaymentStatus(year?: number, month?: number) {
 	const session = await getSession();
 	if (!session?.user?.id) return [];
 	const baseDate = year != null && month != null ? new Date(year, month, 1) : new Date();
 	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone(baseDate);
 
-	const [expenses, paidIds] = await Promise.all([
+	const [expenses, paidThisMonthIds, everPaidIds] = await Promise.all([
 		prisma.expense.findMany({
 			where: { userId: session.user.id },
 			orderBy: { createdAt: "desc" },
 		}),
-		(prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ expenseId: string }>> } }).expensePayment
+		prisma.expensePayment
 			.findMany({
-				where: { referenceMonth: { gte: startOfMonth, lt: endOfMonth }, expense: { userId: session.user.id } },
+				where: {
+					referenceMonth: { gte: startOfMonth, lt: endOfMonth },
+					expense: { userId: session.user.id },
+				},
 				select: { expenseId: true },
 			})
-			.then((list: Array<{ expenseId: string }>) => new Set(list.map((p) => p.expenseId))),
+			.then((list) => new Set(list.map((p) => p.expenseId))),
+		prisma.expensePayment
+			.findMany({
+				where: {
+					expense: { userId: session.user.id, frequency: "ONE_TIME" },
+				},
+				select: { expenseId: true },
+			})
+			.then((list) => new Set(list.map((p) => p.expenseId))),
 	]);
 
-	return expenses.map((e: (typeof expenses)[number]) => ({
-		id: e.id,
-		userId: e.userId,
-		title: e.title,
-		description: e.description,
-		logoUrl: e.logoUrl,
-		logoId: e.logoId ?? null,
-		value: Number(e.value),
-		frequency: e.frequency,
-		dueDate: (e as { dueDate?: Date | null }).dueDate
-			? formatDateOnly((e as { dueDate: Date }).dueDate)
-			: null,
-		createdAt: e.createdAt.toISOString(),
-		updatedAt: e.updatedAt.toISOString(),
-		paidThisMonth: paidIds.has(e.id),
-	}));
+	return expenses
+		.filter((e) => isActiveExpense(e.frequency, everPaidIds.has(e.id)))
+		.map((e) => ({
+			id: e.id,
+			userId: e.userId,
+			title: e.title,
+			description: e.description,
+			logoUrl: e.logoUrl,
+			logoId: e.logoId ?? null,
+			value: Number(e.value),
+			frequency: e.frequency,
+			dueDate: e.dueDate ? formatDateOnly(e.dueDate) : null,
+			createdAt: e.createdAt.toISOString(),
+			updatedAt: e.updatedAt.toISOString(),
+			paidThisMonth: paidThisMonthIds.has(e.id),
+		}));
 }
 
-/** Histórico de pagamentos concluídos (por mês). */
+/**
+ * Histórico de pagamentos concluídos.
+ * Sem year/month: retorna todos os meses (histórico persiste ao virar o mês).
+ * Com year/month: filtra só aquele mês de referência.
+ */
 export async function getPaymentsHistory(year?: number, month?: number) {
 	const session = await getSession();
 	if (!session?.user?.id) return [];
-	const baseDate = year != null && month != null ? new Date(year, month, 1) : new Date();
-	const { start: startOfMonth, end: endOfMonth } = getMonthRangeInTimeZone(baseDate);
 
-	const payments = await (prisma as unknown as { expensePayment: { findMany: (args: object) => Promise<Array<{ id: string; expenseId: string; referenceMonth: Date; paidAt: Date; expense: { title: string; value: unknown } }>> } }).expensePayment.findMany({
+	const monthFilter =
+		year != null && month != null
+			? (() => {
+					const { start, end } = getMonthRangeInTimeZone(new Date(year, month, 1));
+					return { gte: start, lt: end };
+				})()
+			: undefined;
+
+	const payments = await prisma.expensePayment.findMany({
 		where: {
 			expense: { userId: session.user.id },
-			referenceMonth: { gte: startOfMonth, lt: endOfMonth },
+			...(monthFilter ? { referenceMonth: monthFilter } : {}),
 		},
 		include: { expense: true },
-		orderBy: { paidAt: "desc" },
+		orderBy: [{ referenceMonth: "desc" }, { paidAt: "desc" }],
 	});
 
 	return payments.map((p) => ({
@@ -167,6 +198,7 @@ export async function getPaymentsHistory(year?: number, month?: number) {
 		expenseId: p.expenseId,
 		expenseTitle: p.expense.title,
 		expenseValue: Number(p.expense.value),
+		expenseFrequency: p.expense.frequency,
 		referenceMonth: p.referenceMonth,
 		paidAt: p.paidAt,
 	}));
