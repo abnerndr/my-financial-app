@@ -1,13 +1,18 @@
-import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { parseDateOnly } from "@/lib/date-only";
 import { groupPaymentsByReferenceMonth } from "@/lib/expense-visibility";
-import { formatCurrency } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { getPaidStatus } from "@/lib/payment-status";
+import { formatCurrency, getDueDateForMonth } from "@/lib/utils";
+
+export const HISTORY_PAGE_SIZE = 10;
 
 type Payment = {
 	id: string;
 	expenseTitle: string;
 	expenseValue: number;
 	expenseFrequency: string;
+	expenseDueDate: string | null;
 	referenceMonth: Date | string;
 	paidAt: Date | string;
 };
@@ -18,81 +23,110 @@ const recurringLabel: Record<string, string> = {
 	ANNUAL: "Anual",
 };
 
+const GRID = "md:grid md:grid-cols-[minmax(0,1fr)_8rem_10rem_8rem] md:items-center md:gap-4";
+
 function capitalize(text: string) {
 	return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-/** Agrupa pagamentos (já ordenados por paidAt desc) pelo dia do pagamento. */
-function groupByPaidDay(payments: Payment[]) {
-	const days: { key: string; date: Date; payments: Payment[] }[] = [];
-	for (const p of payments) {
-		const date = new Date(p.paidAt);
-		const key = date.toLocaleDateString("pt-BR");
-		const last = days.at(-1);
-		if (last?.key === key) last.payments.push(p);
-		else days.push({ key, date, payments: [p] });
-	}
-	return days;
+function statusOf(p: Payment) {
+	const ref = new Date(p.referenceMonth);
+	const dueDate = getDueDateForMonth(
+		p.expenseDueDate ? parseDateOnly(p.expenseDueDate) : null,
+		p.expenseFrequency as "ONE_TIME" | "MONTHLY" | "ANNUAL",
+		ref.getUTCFullYear(),
+		ref.getUTCMonth()
+	);
+	return getPaidStatus(new Date(p.paidAt), dueDate);
 }
 
-export function PaymentHistory({ payments }: { payments: Payment[] }) {
-	const months = groupPaymentsByReferenceMonth(payments);
-
-	if (months.length === 0) {
+export function PaymentHistory({
+	payments,
+	page,
+	hrefFor,
+}: {
+	payments: Payment[];
+	page: number;
+	hrefFor: (page: number) => string;
+}) {
+	if (payments.length === 0) {
 		return <p className="py-4 text-center text-muted-foreground">Nenhum pagamento registrado ainda.</p>;
 	}
 
+	const totalPages = Math.ceil(payments.length / HISTORY_PAGE_SIZE);
+	const current = Math.min(Math.max(1, page), totalPages);
+	const pageItems = payments.slice((current - 1) * HISTORY_PAGE_SIZE, current * HISTORY_PAGE_SIZE);
+
+	// Totais do mês consideram todos os pagamentos, não só os da página.
+	const monthTotals = new Map(
+		groupPaymentsByReferenceMonth(payments).map((g) => [
+			g.key,
+			{ count: g.payments.length, total: g.payments.reduce((acc, p) => acc + p.expenseValue, 0) },
+		])
+	);
+	const pageMonths = groupPaymentsByReferenceMonth(pageItems);
+
 	return (
-		<div className="divide-y rounded-lg border">
-			{months.map((month, index) => {
-				const total = month.payments.reduce((acc, p) => acc + p.expenseValue, 0);
-				const days = groupByPaidDay(month.payments);
+		<div className="space-y-4">
+			<div className="overflow-hidden rounded-lg border">
+				<div className={`hidden bg-muted/60 px-4 py-2.5 text-xs font-medium text-muted-foreground ${GRID}`}>
+					<span>Gasto</span>
+					<span>Pago em</span>
+					<span>Status</span>
+					<span className="text-right">Valor</span>
+				</div>
 
-				return (
-					<details key={month.key} open={index === 0} className="group">
-						<summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 hover:bg-muted/50 [&::-webkit-details-marker]:hidden">
-							<ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-							<div className="min-w-0 flex-1">
-								<p className="font-semibold">{capitalize(month.label)}</p>
-								<p className="text-xs text-muted-foreground">
-									{month.payments.length} {month.payments.length === 1 ? "pagamento" : "pagamentos"}
-								</p>
+				{pageMonths.map((month) => {
+					const summary = monthTotals.get(month.key);
+					return (
+						<section key={month.key} className="border-t first-of-type:border-t-0 md:first-of-type:border-t">
+							<div className="flex items-center justify-between gap-3 bg-muted/30 px-4 py-2 text-xs">
+								<span className="font-semibold text-foreground">{capitalize(month.label)}</span>
+								<span className="text-muted-foreground">
+									{summary?.count} {summary?.count === 1 ? "pagamento" : "pagamentos"} ·{" "}
+									<span className="font-medium tabular-nums text-foreground">
+										{formatCurrency(summary?.total ?? 0)}
+									</span>
+								</span>
 							</div>
-							<span className="font-semibold tabular-nums">{formatCurrency(total)}</span>
-						</summary>
 
-						<div className="border-t">
-							{days.map((day) => (
-								<div key={day.key} className="flex gap-3 border-b px-4 py-2 last:border-b-0">
-									<div className="w-10 shrink-0 pt-1.5 text-center leading-tight">
-										<p className="text-sm font-semibold tabular-nums">
-											{day.date.toLocaleDateString("pt-BR", { day: "2-digit" })}
-										</p>
-										<p className="text-[11px] uppercase text-muted-foreground">
-											{day.date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}
-										</p>
-									</div>
-									<ul className="min-w-0 flex-1">
-										{day.payments.map((p) => (
-											<li key={p.id} className="flex items-center gap-2 py-1.5 text-sm">
-												<span className="truncate">{p.expenseTitle}</span>
-												{recurringLabel[p.expenseFrequency] && (
-													<Badge variant="outline" className="px-1.5 py-0 text-[10px] font-medium">
-														{recurringLabel[p.expenseFrequency]}
-													</Badge>
-												)}
-												<span className="ml-auto shrink-0 font-medium tabular-nums">
-													{formatCurrency(p.expenseValue)}
+							<ul className="divide-y border-t">
+								{month.payments.map((p) => (
+									<li
+										key={p.id}
+										className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-muted/40 ${GRID}`}
+									>
+										<div className="min-w-0 flex-1">
+											<p className="truncate font-medium">{p.expenseTitle}</p>
+											<div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground md:mt-0">
+												{recurringLabel[p.expenseFrequency] && <span>{recurringLabel[p.expenseFrequency]}</span>}
+												<span className="md:hidden">
+													{recurringLabel[p.expenseFrequency] && "· "}
+													{new Date(p.paidAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
 												</span>
-											</li>
-										))}
-									</ul>
-								</div>
-							))}
-						</div>
-					</details>
-				);
-			})}
+											</div>
+										</div>
+										<span className="hidden text-muted-foreground tabular-nums md:block">
+											{new Date(p.paidAt).toLocaleDateString("pt-BR")}
+										</span>
+										<span className="hidden md:block">
+											<StatusBadge status={statusOf(p)} />
+										</span>
+										<div className="flex shrink-0 flex-col items-end gap-1 md:block md:text-right">
+											<span className="font-semibold tabular-nums">{formatCurrency(p.expenseValue)}</span>
+											<span className="md:hidden">
+												<StatusBadge status={statusOf(p)} />
+											</span>
+										</div>
+									</li>
+								))}
+							</ul>
+						</section>
+					);
+				})}
+			</div>
+
+			<Pagination page={current} pageSize={HISTORY_PAGE_SIZE} total={payments.length} hrefFor={hrefFor} />
 		</div>
 	);
 }

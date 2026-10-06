@@ -27,7 +27,9 @@ function totalExpensesThisMonth(
 	}, 0);
 }
 
-export default async function GastosPage() {
+export default async function GastosPage({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
+	const { pagina } = await searchParams;
+	const historyPage = Number(pagina) || 1;
 	const session = await getSession();
 	if (!session) redirect("/");
 
@@ -124,7 +126,11 @@ export default async function GastosPage() {
 					</p>
 				</CardHeader>
 				<CardContent>
-					<PaymentHistory payments={paymentsHistory} />
+					<PaymentHistory
+						payments={paymentsHistory}
+						page={historyPage}
+						hrefFor={(p) => `/gastos?pagina=${p}`}
+					/>
 				</CardContent>
 			</Card>
 		</div>

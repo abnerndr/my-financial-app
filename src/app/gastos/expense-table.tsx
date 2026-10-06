@@ -3,9 +3,11 @@
 import { deleteExpense, markExpenseAsPaid, unmarkExpenseAsPaid } from "@/app/actions/expenses";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import type { LogoLibrary } from "@/components/logos/logo-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { parseDateOnly } from "@/lib/date-only";
+import { getExpenseStatus } from "@/lib/payment-status";
 import { formatCurrency, getDueDateForMonth } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import Image from "next/image";
@@ -87,7 +89,7 @@ export function ExpenseTable({
 					<TableHead>Valor</TableHead>
 					<TableHead>Vencimento</TableHead>
 					<TableHead>Periodicidade</TableHead>
-					<TableHead>Status (mês)</TableHead>
+					<TableHead>Status do mês</TableHead>
 					<TableHead className="w-[220px] text-right">Ações</TableHead>
 				</TableRow>
 			</TableHeader>
@@ -123,11 +125,7 @@ export function ExpenseTable({
 								<Badge variant="secondary">{frequencyLabel[e.frequency] ?? e.frequency}</Badge>
 							</TableCell>
 							<TableCell>
-								{e.paidThisMonth ? (
-									<Badge variant="default" className="bg-emerald-600">Pago este mês</Badge>
-								) : (
-									<Badge variant="secondary">Pendente</Badge>
-								)}
+								<StatusBadge status={getExpenseStatus(e.paidThisMonth, dueDate, now)} />
 							</TableCell>
 							<TableCell className="text-right">
 								<div className="flex flex-wrap items-center justify-end gap-1">

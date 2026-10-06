@@ -92,7 +92,7 @@ export function PwaInstallToast() {
 		<div
 			role="status"
 			aria-live="polite"
-			className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[100] mx-auto max-w-md rounded-xl border bg-background p-4 shadow-lg md:hidden"
+			className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[100] mx-auto max-w-md rounded-xl border bg-card p-4 shadow-lg md:hidden"
 		>
 			<div className="flex items-start gap-3">
 				<div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

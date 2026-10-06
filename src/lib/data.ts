@@ -199,6 +199,7 @@ export async function getPaymentsHistory(year?: number, month?: number) {
 		expenseTitle: p.expense.title,
 		expenseValue: Number(p.expense.value),
 		expenseFrequency: p.expense.frequency,
+		expenseDueDate: p.expense.dueDate ? formatDateOnly(p.expense.dueDate) : null,
 		referenceMonth: p.referenceMonth,
 		paidAt: p.paidAt,
 	}));
