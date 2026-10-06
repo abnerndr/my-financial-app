@@ -10,9 +10,34 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
 ));
 Card.displayName = "Card";
 
-const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-	({ className, ...props }, ref) => (
-		<div ref={ref} className={cn("flex flex-col gap-1 p-5", className)} {...props} />
+type CardHeaderProps = React.HTMLAttributes<HTMLDivElement> & {
+	/** Linha divisória abaixo do cabeçalho (cards de seção, estilo Preline). */
+	divider?: boolean;
+	/** Ações à direita do título (filtros, botões). */
+	action?: React.ReactNode;
+};
+
+const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
+	({ className, divider, action, children, ...props }, ref) => (
+		<div
+			ref={ref}
+			className={cn(
+				"flex flex-col gap-1 p-5",
+				divider && "mb-5 border-b px-5 py-4",
+				action && "gap-3 sm:flex-row sm:items-center sm:justify-between",
+				className
+			)}
+			{...props}
+		>
+			{action ? (
+				<>
+					<div className="flex min-w-0 flex-col gap-1">{children}</div>
+					<div className="flex shrink-0 items-center gap-2">{action}</div>
+				</>
+			) : (
+				children
+			)}
+		</div>
 	)
 );
 CardHeader.displayName = "CardHeader";

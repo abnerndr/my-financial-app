@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { getSession } from "@/lib/auth";
 import { getExpensesWithPaymentStatus, getLogoLibrary, getPaymentsHistory } from "@/lib/data";
+import { groupPaymentsByReferenceMonth } from "@/lib/expense-visibility";
 import { getMonthRangeInTimeZone } from "@/lib/month";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
@@ -10,6 +11,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ExpenseForm } from "./expense-form";
 import { ExpenseTable } from "./expense-table";
+import { HistoryMonthFilter } from "./history-month-filter";
 import { PaymentHistory } from "./payment-history";
 
 function totalExpensesThisMonth(
@@ -27,8 +29,12 @@ function totalExpensesThisMonth(
 	}, 0);
 }
 
-export default async function GastosPage({ searchParams }: { searchParams: Promise<{ pagina?: string }> }) {
-	const { pagina } = await searchParams;
+export default async function GastosPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ pagina?: string; mes?: string }>;
+}) {
+	const { pagina, mes } = await searchParams;
 	const historyPage = Number(pagina) || 1;
 	const session = await getSession();
 	if (!session) redirect("/");
@@ -45,7 +51,25 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
 		return ref >= startOfMonth && ref < endOfMonth;
 	});
 
-	const monthName = new Date().toLocaleString("pt-BR", { month: "long" });
+	const historyMonths = groupPaymentsByReferenceMonth(paymentsHistory).map((g) => ({
+		key: g.key,
+		label: g.label,
+		count: g.payments.length,
+	}));
+	const selectedMonth = historyMonths.find((m) => m.key === mes) ?? null;
+	const filteredHistory = selectedMonth
+		? paymentsHistory.filter((p) => {
+				const ref = new Date(p.referenceMonth);
+				return `${ref.getUTCFullYear()}-${String(ref.getUTCMonth() + 1).padStart(2, "0")}` === selectedMonth.key;
+			})
+		: paymentsHistory;
+	const historyHref = (p: number) => {
+		const params = new URLSearchParams();
+		if (selectedMonth) params.set("mes", selectedMonth.key);
+		if (p > 1) params.set("pagina", String(p));
+		const query = params.toString();
+		return query ? `/gastos?${query}` : "/gastos";
+	};
 	const totalPaid = paymentsThisMonth.reduce((acc, p) => acc + p.expenseValue, 0);
 	const totalExpenses = totalExpensesThisMonth(expenses);
 
@@ -98,8 +122,9 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
 			</Card>
 
 			<Card>
-				<CardHeader>
+				<CardHeader divider>
 					<CardTitle>Novo gasto</CardTitle>
+					<CardDescription>Título, valor, periodicidade e vencimento</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ExpenseForm library={library} />
@@ -107,11 +132,11 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
 			</Card>
 
 			<Card>
-				<CardHeader>
+				<CardHeader divider>
 					<CardTitle>Lista de gastos</CardTitle>
-					<p className="text-sm text-muted-foreground">
+					<CardDescription>
 						{expenses.length} ativo(s) · mensais e anuais permanecem; únicos vão para o histórico após o pagamento
-					</p>
+					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ExpenseTable expenses={expenses} library={library} />
@@ -119,18 +144,23 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
 			</Card>
 
 			<Card>
-				<CardHeader>
+				<CardHeader
+					divider
+					action={
+						historyMonths.length > 0 && (
+							<HistoryMonthFilter months={historyMonths} value={selectedMonth?.key ?? null} />
+						)
+					}
+				>
 					<CardTitle>Histórico de pagamentos</CardTitle>
-					<p className="text-sm text-muted-foreground">
-						Pagamentos concluídos por mês · inclui {monthName} e meses anteriores
-					</p>
+					<CardDescription>
+						{selectedMonth
+							? `Pagamentos de ${selectedMonth.label}`
+							: "Pagamentos concluídos de todos os meses"}
+					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<PaymentHistory
-						payments={paymentsHistory}
-						page={historyPage}
-						hrefFor={(p) => `/gastos?pagina=${p}`}
-					/>
+					<PaymentHistory payments={filteredHistory} page={historyPage} hrefFor={historyHref} />
 				</CardContent>
 			</Card>
 		</div>

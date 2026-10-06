@@ -10,6 +10,15 @@ export type InputProps = React.ComponentProps<"input"> & {
 	variant?: "default" | "auth";
 };
 
+/** Visual base de controles de formulário (input, select, textarea) — padrão Preline. */
+export const formControlClass = cn(
+	"border border-input bg-card text-foreground shadow-2xs transition-[color,box-shadow,border-color]",
+	"placeholder:text-muted-foreground",
+	"hover:border-foreground/25",
+	"focus-visible:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/20",
+	"disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-input"
+);
+
 /**
  * Input da plataforma — estilo Figma (bordas arredondadas, altura confortável no mobile)
  * com cores do tema (primary/emerald), reutilizável em todos os formulários.
@@ -22,16 +31,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 			<input
 				type={type}
 				className={cn(
-					"flex w-full bg-card text-foreground shadow-xs transition-colors",
+					"flex w-full",
+					formControlClass,
 					"file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
-					"placeholder:text-muted-foreground",
-					"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
-					"disabled:cursor-not-allowed disabled:opacity-50",
-					"border border-input",
 					variant === "auth"
 						? "h-14 min-h-14 rounded-[18px] px-5 text-base"
-						: "h-11 min-h-11 rounded-xl px-4 text-base md:h-10 md:min-h-10 md:rounded-lg md:text-sm",
-					hasAdornment && "border-0 bg-transparent shadow-none focus-visible:ring-0 h-full min-h-0 px-0",
+						: "h-11 min-h-11 rounded-lg px-3 text-base md:h-10 md:min-h-10 md:text-sm",
+					hasAdornment &&
+						"h-full min-h-0 border-0 bg-transparent px-0 shadow-none hover:border-0 focus-visible:ring-0",
 					startAdornment && "pl-0",
 					endAdornment && "pr-0",
 					className
@@ -46,9 +53,9 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 		return (
 			<div
 				className={cn(
-					"flex w-full items-center gap-2 border border-input bg-[#fdfdfd] dark:bg-background",
-					"focus-within:ring-2 focus-within:ring-ring",
-					variant === "auth" ? "h-14 rounded-[18px] px-4" : "h-11 min-h-11 rounded-xl px-3 md:h-10 md:min-h-10 md:rounded-lg"
+					"flex w-full items-center gap-2 border border-input bg-card shadow-2xs transition-[box-shadow,border-color]",
+					"hover:border-foreground/25 focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/20",
+					variant === "auth" ? "h-14 rounded-[18px] px-4" : "h-11 min-h-11 rounded-lg px-3 md:h-10 md:min-h-10"
 				)}
 			>
 				{startAdornment ? <div className="flex shrink-0 items-center text-muted-foreground">{startAdornment}</div> : null}

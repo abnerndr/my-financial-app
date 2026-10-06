@@ -4,22 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 const buttonVariants = cva(
-	"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+	"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-[color,background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
 	{
 		variants: {
 			variant: {
-				default: "bg-primary text-primary-foreground shadow-xs hover:bg-primary/90",
-				destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-				outline: "border border-border bg-card shadow-xs hover:bg-accent hover:text-accent-foreground",
-				secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-				ghost: "hover:bg-accent hover:text-accent-foreground",
+				default: "border border-primary bg-primary text-primary-foreground shadow-2xs hover:bg-primary/90",
+				destructive: "bg-destructive text-white shadow-2xs hover:bg-destructive/90",
+				outline: "border border-border bg-card text-foreground shadow-2xs hover:bg-muted",
+				secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/70",
+				ghost: "text-foreground hover:bg-muted",
 				link: "text-primary underline-offset-4 hover:underline",
 			},
 			size: {
 				/* min-h só no mobile (< md); desktop mantém h-* original */
-				default: "h-9 min-h-11 px-4 py-2 md:min-h-0",
-				sm: "h-8 min-h-10 rounded-md px-3 text-xs md:min-h-0",
-				lg: "h-10 min-h-12 rounded-md px-8 md:min-h-0",
+				default: "h-9 min-h-11 px-3.5 md:min-h-0",
+				sm: "h-8 min-h-10 px-3 text-xs md:min-h-0",
+				lg: "h-11 min-h-12 px-5 md:min-h-0",
 				icon: "size-9 min-h-11 min-w-11 md:min-h-9 md:min-w-9",
 			},
 		},
